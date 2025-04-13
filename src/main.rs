@@ -1,8 +1,13 @@
 use axum_server::create_app;
+use dotenv::dotenv;
+use std::env;
 use tracing_subscriber::{self, prelude::*};
 
 #[tokio::main]
 async fn main() {
+    // Load environment variables from .env file
+    dotenv().ok();
+
     // Setup more detailed logging
     tracing_subscriber::registry()
         .with(
