@@ -61,13 +61,13 @@ impl OpenRouterClient {
     // Method to make a request to the OpenRouter API and return the interpretation
     pub async fn request_dream_interpretation(
         &self,
-        dream_description: &str,
+        dream_text: &str,
     ) -> Result<String, ClientError> {
         let request_body = CompletionRequest {
             model: String::from("deepseek/deepseek-r1:free"),
             messages: vec![Message {
                 role: String::from("user"),
-                content: String::from(dream_description),
+                content: String::from(dream_text),
             }],
         };
 
