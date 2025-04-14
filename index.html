@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="AI-powered Dream Interpreter - Understand the meaning behind your dreams"
+    />
+    <title>Dream Interpreter AI</title>
+
+    <!-- Import Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Add a plain CSS file: see https://trunkrs.dev/assets/#css -->
+    <!-- If using Tailwind with Leptos CSR, see https://trunkrs.dev/assets/#tailwind instead-->
+    <link data-trunk rel="css" href="public/styles.css" />
+
+    <!-- Include favicon in dist output: see https://trunkrs.dev/assets/#icon -->
+    <link data-trunk rel="icon" href="public/favicon.ico" />
+
+    <!-- include support for `wasm-bindgen --weak-refs` - see: https://rustwasm.github.io/docs/wasm-bindgen/reference/weak-references.html -->
+    <link
+      data-trunk
+      rel="rust"
+      data-wasm-opt="z"
+      data-weak-refs
+      data-no-source-maps
+    />
+  </head>
+
+  <body></body>
+</html>
