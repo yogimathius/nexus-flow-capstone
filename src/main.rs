@@ -16,9 +16,9 @@ async fn main() {
 
     // Parse command line arguments to get port
     let args: Vec<String> = std::env::args().collect();
-    let port = parse_port_from_args(&args).unwrap_or(3000);
+    let port = parse_port_from_args(&args).unwrap_or(3001);
 
-    // Check for special run modes
+    // Setup more detailed logging
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()

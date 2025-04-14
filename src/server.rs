@@ -1,13 +1,14 @@
 use axum::{
     Router,
     extract::Json,
-    http::StatusCode,
+    http::{Method, StatusCode, header},
     response::IntoResponse,
     routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tokio;
+use tower_http::cors::{Any, CorsLayer};
 
 use crate::ai_client::OpenRouterClient;
 use crate::mcp_client::{McpClient, TextOperation};
@@ -47,18 +48,35 @@ impl Server {
     }
 
     pub fn router(&self) -> Router {
-        // Define each route with explicit method handlers
-        let health_route = axum::routing::get(health_handler);
-        let process_text_route = axum::routing::post(process_text_handler);
-        let interpret_dream_route = axum::routing::post(interpret_dream_handler);
+        // Create CORS layer with explicitly specified headers
+        let cors = CorsLayer::new()
+            // Allow any origin
+            .allow_origin(tower_http::cors::Any)
+            // Allow common methods
+            .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+            // Explicitly specify the allowed headers instead of Any
+            .allow_headers([
+                header::CONTENT_TYPE,
+                header::AUTHORIZATION,
+                header::ACCEPT,
+                header::ORIGIN,
+            ]);
 
-        // Build the router with explicit routes
+        // Define routes
         let app = Router::new()
-            .route("/health", health_route)
-            .route("/api/process_text", process_text_route)
-            .route("/api/interpret_dream", interpret_dream_route);
+            .route("/health", axum::routing::get(health_handler))
+            .route(
+                "/api/process_text",
+                axum::routing::post(process_text_handler),
+            )
+            .route(
+                "/api/interpret_dream",
+                axum::routing::post(interpret_dream_handler),
+            )
+            // Apply CORS as the first middleware
+            .layer(cors);
 
-        println!("Router configuration created with explicitly defined routes.");
+        println!("Router configured with CORS middleware and explicit headers");
 
         app
     }
