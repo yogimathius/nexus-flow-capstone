@@ -1,4 +1,4 @@
-use axum_server::create_app;
+use axum_server::Server;
 use dotenv::dotenv;
 use std::env;
 use tracing_subscriber::{self, prelude::*};
@@ -8,7 +8,17 @@ async fn main() {
     // Load environment variables from .env file
     dotenv().ok();
 
-    // Setup more detailed logging
+    // Debug print to check if the API key was loaded
+    match env::var("OPENROUTER_API_KEY") {
+        Ok(key) => println!("API key found with length: {}", key.len()),
+        Err(e) => println!("Error loading API key: {:?}", e),
+    }
+
+    // Parse command line arguments to get port
+    let args: Vec<String> = std::env::args().collect();
+    let port = parse_port_from_args(&args).unwrap_or(3000);
+
+    // Check for special run modes
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -19,28 +29,20 @@ async fn main() {
 
     println!("Initializing Model Context Protocol (MCP) Text Processor API...");
 
-    // Create the app using our library function
-    let app = create_app();
+    // Create and run the server with the specified port
+    let server = Server::new(port);
+    println!("Starting server on port {}...", port);
+    server.run().await;
+}
 
-    // Start server
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    println!("Server started on port 3000");
-    println!("Available endpoints:");
-    println!("  GET  /health - Health check endpoint");
-    println!("  POST /api/process_text - Process text with operations");
-    println!("");
-    println!("Example usage:");
-    println!("  curl -X POST http://localhost:3000/api/process_text \\");
-    println!("    -H \"Content-Type: application/json\" \\");
-    println!(
-        "    -d '{{\"text\": \"this is a sample text. it needs formatting!\", \"operation\": \"format\"}}'"
-    );
-    println!("");
-    println!("Available operations:");
-    println!("  count    - Count characters, words, and lines");
-    println!("  validate - Check text for validity and patterns");
-    println!("  format   - Format and clean text (capitalize, etc.)");
-    println!("  analyze  - Analyze text sentiment");
-
-    axum::serve(listener, app).await.unwrap();
+// Function to parse port from command line arguments
+fn parse_port_from_args(args: &[String]) -> Option<u16> {
+    for i in 0..args.len() {
+        if args[i] == "--port" && i + 1 < args.len() {
+            if let Ok(port) = args[i + 1].parse::<u16>() {
+                return Some(port);
+            }
+        }
+    }
+    None
 }
