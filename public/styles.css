@@ -1,0 +1,521 @@
+/* --------------------- Open Props --------------------------- */
+
+/* the props */
+@import "https://unpkg.com/open-props";
+
+/* optional imports that use the props */
+@import "https://unpkg.com/open-props/normalize.min.css";
+@import "https://unpkg.com/open-props/buttons.min.css";
+
+/* ------------------------------------------------------------ */
+
+:root {
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #a5b4fc;
+  --background: #1e1e2e;
+  --text: #f8fafc;
+  --text-secondary: #94a3b8;
+  --card: #2a2b3d;
+  --card-hover: #323348;
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --shadow: rgba(0, 0, 0, 0.25);
+  --input-bg: #111827;
+  --border-radius: 12px;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--background);
+  color: var(--text);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.container {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+h1 {
+  font-size: 3.5rem;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 2rem;
+}
+
+h2 {
+  font-size: 2.25rem;
+  margin-bottom: 1.5rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Dream Interpreter Styles */
+.dream-interpreter {
+  width: 100%;
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: var(--card);
+  border-radius: var(--border-radius);
+  box-shadow: 0 8px 30px var(--shadow);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+textarea,
+input[type="text"] {
+  width: 100%;
+  padding: 1rem;
+  background-color: var(--input-bg);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  resize: vertical;
+}
+
+textarea:focus,
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+}
+
+textarea:hover,
+input[type="text"]:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.submit-btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+}
+
+.submit-btn:disabled {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.error-message {
+  color: var(--error);
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: rgba(239, 68, 68, 0.1);
+  border-left: 4px solid var(--error);
+  border-radius: var(--border-radius);
+  font-weight: 500;
+}
+
+.interpretation {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(
+    to bottom right,
+    rgba(99, 102, 241, 0.1),
+    rgba(165, 180, 252, 0.05)
+  );
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  border-left: 4px solid var(--primary);
+}
+
+.interpretation h3 {
+  color: var(--primary-light);
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.interpretation-text {
+  white-space: pre-line;
+  margin: 0;
+  line-height: 1.8;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+/* API Settings and Mock Mode Toggle */
+.api-settings {
+  background-color: rgba(42, 43, 61, 0.8);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mode-toggle {
+  margin-bottom: 1.5rem;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-label input[type="checkbox"] {
+  position: relative;
+  width: 50px;
+  height: 24px;
+  appearance: none;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  margin-right: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.toggle-label input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: white;
+  transition: all 0.3s ease;
+}
+
+.toggle-label input[type="checkbox"]:checked {
+  background-color: var(--primary);
+}
+
+.toggle-label input[type="checkbox"]:checked::before {
+  left: calc(100% - 22px);
+}
+
+.toggle-label span {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Debug Logs */
+.debug-logs {
+  margin-top: 2rem;
+  text-align: left;
+  width: 100%;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.debug-logs summary {
+  cursor: pointer;
+  padding: 1rem 1.5rem;
+  background-color: rgba(42, 43, 61, 0.8);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+  color: var(--text-secondary);
+}
+
+.debug-logs summary::before {
+  content: "🔍";
+  margin-right: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.debug-logs summary:hover {
+  background-color: var(--card-hover);
+  color: var(--text);
+}
+
+.debug-logs pre {
+  margin: 0;
+  padding: 1rem 1.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+  background-color: var(--input-bg);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Header Styles */
+header {
+  background-color: var(--card);
+  padding: 3rem 0 2rem;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  z-index: 1;
+}
+
+.tagline {
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  margin-top: -1rem;
+  margin-bottom: 1rem;
+}
+
+/* Footer Styles */
+footer {
+  margin-top: 4rem;
+  padding: 2rem 0;
+  background-color: var(--card);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+footer p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Links */
+a {
+  color: var(--primary-light);
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2.5rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+  }
+
+  .dream-interpreter {
+    padding: 1.5rem;
+  }
+
+  .submit-btn {
+    padding: 0.75rem 1.5rem;
+  }
+
+  header {
+    padding: 2rem 0 1.5rem;
+  }
+
+  .tagline {
+    font-size: 1rem;
+  }
+
+  footer {
+    margin-top: 2rem;
+    padding: 1.5rem 0;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  .dream-interpreter {
+    padding: 1rem;
+  }
+}
+
+/* Error hint and mock button */
+.error-hint {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.error-hint p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.error-hint strong {
+  color: var(--primary-light);
+}
+
+.enable-mock-btn {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+  margin-top: 0.5rem;
+}
+
+.enable-mock-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.5);
+}
+
+/* CORS Settings */
+.cors-settings {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cors-settings label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: flex-start;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  transition: background-color 0.3s ease;
+}
+
+.radio-label:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.radio-label input[type="radio"] {
+  margin-right: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.radio-label span {
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+.help-text {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  margin-left: 1.5rem;
+}
+
+/* CORS Error Actions */
+.cors-error-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cors-error-actions h4 {
+  color: var(--primary-light);
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.enable-nocors-btn {
+  background: linear-gradient(135deg, var(--warning), #f97316);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 10px rgba(245, 158, 11, 0.3);
+  margin-top: 0.5rem;
+}
+
+.enable-nocors-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5);
+}
+
+/* Error Actions */
+.error-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
