@@ -127,6 +127,7 @@ name = "axum-server"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "bytes",
  "chrono",
  "dotenv",
  "reqwest",
