@@ -7,9 +7,13 @@ mod components;
 mod pages;
 
 // Top-Level pages
+use crate::components::dream_interpreter::DreamInterpreter;
 use crate::pages::badge_demo::BadgeDemo;
 use crate::pages::button_demo::ButtonDemo;
 use crate::pages::home::Home;
+
+// Layout components
+use crate::components::layout::Layout;
 
 /// An app router which renders the homepage and handles 404's
 #[component]
@@ -32,19 +36,28 @@ pub fn App() -> impl IntoView {
         />
 
         <Router>
-            <Routes fallback=|| {
-                view! {
-                    <div class="container">
-                        <h1>"Page Not Found"</h1>
-                        <p>"The page you are looking for does not exist."</p>
-                        <a href="/">"Return to Home"</a>
-                    </div>
-                }
-            }>
-                <Route path=path!("/") view=Home />
-                <Route path=path!("/buttons") view=ButtonDemo />
-                <Route path=path!("/badges") view=BadgeDemo />
-            </Routes>
+            <Layout>
+                <Routes fallback=|| {
+                    view! {
+                        <div class="container">
+                            <h1>"Page Not Found"</h1>
+                            <p>"The page you are looking for does not exist."</p>
+                            <a href="/">"Return to Home"</a>
+                        </div>
+                    }
+                }>
+                    <Route path=path!("/") view=Home />
+                    <Route
+                        path=path!("/symbols")
+                        view=|| view! { <h1>"Symbol Library - Coming Soon"</h1> }
+                    />
+                    <Route path=path!("/interpret") view=|| view! { <DreamInterpreter /> } />
+
+                    {}
+                    <Route path=path!("/buttons") view=ButtonDemo />
+                    <Route path=path!("/badges") view=BadgeDemo />
+                </Routes>
+            </Layout>
         </Router>
     }
 }
