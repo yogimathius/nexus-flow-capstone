@@ -8,17 +8,7 @@ async fn main() {
     // Load environment variables from .env file
     dotenv().ok();
 
-    // Debug print to check if the API key was loaded
-    match env::var("OPENROUTER_API_KEY") {
-        Ok(key) => println!("API key found with length: {}", key.len()),
-        Err(e) => println!("Error loading API key: {:?}", e),
-    }
-
-    // Parse command line arguments to get port
-    let args: Vec<String> = std::env::args().collect();
-    let port = parse_port_from_args(&args).unwrap_or(3001);
-
-    // Setup more detailed logging
+    // Setup detailed logging
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -27,7 +17,11 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    println!("Initializing Model Context Protocol (MCP) Text Processor API...");
+    // Parse command line arguments to get port
+    let args: Vec<String> = std::env::args().collect();
+    let port = parse_port_from_args(&args).unwrap_or(3003);
+
+    println!("Initializing Dream Interpreter API...");
 
     // Create and run the server with the specified port
     let server = Server::new(port);

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Default port if not specified
-PORT=${1:-3001}
+PORT=${1:-3003}
 
 echo "Testing API on port $PORT..."
 
