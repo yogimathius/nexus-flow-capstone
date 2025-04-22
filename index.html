@@ -17,9 +17,18 @@
       rel="stylesheet"
     />
 
-    <!-- Add a plain CSS file: see https://trunkrs.dev/assets/#css -->
-    <!-- If using Tailwind with Leptos CSR, see https://trunkrs.dev/assets/#tailwind instead-->
+    <!-- Global CSS -->
     <link data-trunk rel="css" href="public/styles.css" />
+    <!-- Component CSS files -->
+    <link
+      data-trunk
+      rel="css"
+      href="src/components/dream_interpreter.module.css"
+    />
+    <link data-trunk rel="css" href="src/components/button.module.css" />
+    <link data-trunk rel="css" href="src/components/badge.module.css" />
+    <link data-trunk rel="css" href="src/pages/button_demo.module.css" />
+    <link data-trunk rel="css" href="src/pages/badge_demo.module.css" />
 
     <!-- Include favicon in dist output: see https://trunkrs.dev/assets/#icon -->
     <link data-trunk rel="icon" href="public/favicon.ico" />
