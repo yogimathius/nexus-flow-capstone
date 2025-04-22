@@ -575,7 +575,7 @@ async fn main() {
     println!("Initializing Model Context Protocol (MCP) Text Processor API...");
 
     // Create and run the server
-    let server = Server::new(3000);
+    let server = Server::new(3003);
     server.run().await;
 }
 ```
