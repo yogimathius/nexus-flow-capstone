@@ -3,71 +3,96 @@
     <img src="https://raw.githubusercontent.com/leptos-rs/leptos/main/docs/logos/Leptos_logo_RGB.svg" alt="Leptos Logo">
 </picture>
 
-# Leptos Client-Side Rendered (CSR) App Starter Template
+# Dream Interpreter AI - Leptos CSR Application
 
-This is a template for use with the [Leptos][Leptos] web framework using the [Trunk][Trunk] tool to compile and serve your app in development.
+A client-side rendered web application built with Rust and Leptos that interprets dreams using AI.
 
-## Creating your repo from the template
+## CSS Architecture
 
-This template requires you to have `cargo-generate` and `trunk` installed. [`leptosfmt`](https://github.com/bram209/leptosfmt) is optional but highly recommended. You can install them with
+This project follows a modular CSS approach using CSS Modules with Stylance. This approach offers several benefits:
 
-```sh
-cargo install cargo-generate trunk leptosfmt
+- **Component-specific styling**: Each component has its own CSS file, scoped to that component
+- **No style collisions**: Class names are automatically hashed to prevent conflicts
+- **Better organization**: Styles are co-located with their components
+- **Improved maintainability**: Changes to one component's styles don't affect others
+
+### Structure
+
+- `public/styles.css`: Global styles, CSS variables, and base styling
+- `src/components/*.module.css`: Component-specific styles
+- `dist/styles.css`: Generated CSS from Stylance (don't edit directly)
+
+### How to Use CSS Modules
+
+1. Create a `.module.css` file next to your component
+2. Import it in your component using `import_style!(style, "path/to/file.module.css")`
+3. Use the classes with `class=style::class_name`
+
+Example:
+
+```rust
+// In your_component.rs
+use stylance::import_style;
+
+import_style!(style, "components/your_component.module.css");
+
+#[component]
+fn YourComponent() -> impl IntoView {
+    view! {
+        <div class=style::container>
+            <h1 class=style::title>"Hello, world!"</h1>
+        </div>
+    }
+}
 ```
 
-To set up your project with this template, run
+```css
+/* In components/your_component.module.css */
+.container {
+  padding: 1rem;
+}
 
-```sh
-cargo generate --git https://github.com/leptos-community/start-csr
+.title {
+  color: var(--primary);
+}
 ```
 
-to generate your new project, then
+## Technologies
 
-```sh
-cd client-dream-ai
+- Rust 1.85+
+- Leptos 0.8
+- Stylance 0.4 (CSS Modules)
+- Trunk (WebAssembly builder)
+
+## Setup
+
+1. Install dependencies:
+
+```bash
+# Install Rust dependencies
+cargo install trunk
+cargo install stylance-cli
+
+# Install Node.js dependencies
+npm install
 ```
 
-to go to your newly created project.
+2. Run the development server:
 
-By default, this template uses Rust `nightly` and requires that you've installed the `wasm` compilation target for your toolchain.
-
-Sass and Tailwind are also supported by the Trunk build tool, but are optional additions: [see here for more info on how to set those up with Trunk][Trunk-instructions].
-
-If you don't have Rust nightly, you can install it with
-
-```sh
-rustup toolchain install nightly --allow-downgrade
+```bash
+npm run dev
+# OR
+trunk serve
 ```
 
-You can add the `wasm` compilation target to rust using
+3. Build for production:
 
-```sh
-rustup target add wasm32-unknown-unknown
-```
-
-## Developing your Leptos CSR project
-
-To develop your Leptos CSR project, running
-
-```sh
-trunk serve --port 3001 --open
-```
-
-will open your app in your default browser at `http://localhost:3001`.
-
-## Deploying your Leptos CSR project
-
-To build a Leptos CSR app for release, use the command
-
-```sh
+```bash
+npm run build
+# OR
 trunk build --release
 ```
 
-This will output the files necessary to run your app into the `dist` folder; you can then use any static site host to serve these files.
+## License
 
-For further information about hosting Leptos CSR apps, please refer to [the Leptos Book chapter on deployment available here][deploy-csr].
-
-[Leptos]: https://github.com/leptos-rs/leptos
-[Trunk]: https://github.com/trunk-rs/trunk
-[Trunk-instructions]: https://trunkrs.dev/assets/
-[deploy-csr]: https://book.leptos.dev/deployment/csr.html
+MIT
