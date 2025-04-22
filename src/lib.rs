@@ -7,6 +7,8 @@ mod components;
 mod pages;
 
 // Top-Level pages
+use crate::pages::badge_demo::BadgeDemo;
+use crate::pages::button_demo::ButtonDemo;
 use crate::pages::home::Home;
 
 /// An app router which renders the homepage and handles 404's
@@ -40,6 +42,8 @@ pub fn App() -> impl IntoView {
                 }
             }>
                 <Route path=path!("/") view=Home />
+                <Route path=path!("/buttons") view=ButtonDemo />
+                <Route path=path!("/badges") view=BadgeDemo />
             </Routes>
         </Router>
     }
