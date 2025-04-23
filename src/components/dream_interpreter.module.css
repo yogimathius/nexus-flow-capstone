@@ -296,3 +296,64 @@
     gap: 6px;
   }
 }
+
+.api-toggle {
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(124, 58, 237, 0.05);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid var(--primary);
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+
+.toggle-label input[type="checkbox"] {
+  position: relative;
+  width: 50px;
+  height: 24px;
+  appearance: none;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  margin-right: var(--space-3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.toggle-label input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: white;
+  transition: all 0.3s ease;
+}
+
+.toggle-label input[type="checkbox"]:checked {
+  background-color: var(--primary);
+}
+
+.toggle-label input[type="checkbox"]:checked::before {
+  left: calc(100% - 22px);
+}
+
+.toggle-label span {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.api-status {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  margin-left: 55px;
+}
