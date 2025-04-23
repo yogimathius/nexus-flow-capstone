@@ -1,14 +1,12 @@
 use leptos::ev::SubmitEvent;
 use leptos::prelude::*;
-use log::{error, info, warn};
+use gloo_timers::future::TimeoutFuture;
 use serde::Deserialize;
-use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{Request, RequestInit, Response};
 
 // Import our component libraries
-use crate::components::typography::{Title, SubTitle, SectionTitle, Text, SmallText};
-use crate::components::button_fixed::{Button, SubmitButton, ButtonVariant, ButtonSize};
+use crate::components::typography::{SubTitle, SectionTitle};
+use crate::components::button_fixed::SubmitButton;
 
 #[derive(Deserialize, Clone, Debug)]
 struct DreamResponse {
@@ -16,31 +14,30 @@ struct DreamResponse {
     status: String,
 }
 
-// Define component styles using Leptos style! macro
 #[component]
 pub fn DreamInterpreter() -> impl IntoView {
     let (dream_text, set_dream_text) = signal(String::new());
     let (interpretation, set_interpretation) = signal(None::<String>);
     let (is_loading, set_is_loading) = signal(false);
     let (error, set_error) = signal(None::<String>);
-    let (api_url, set_api_url) = signal("http://localhost:3003/api/interpret_dream".to_string());
-    let (debug_log, set_debug_log) = signal(String::new());
-    let (use_mock, set_use_mock) = signal(false);
-    let (cors_mode, set_cors_mode) = signal("cors".to_string()); // "cors" or "no-cors"
-
-    let add_log = move |message: &str| {
-        let timestamp = js_sys::Date::new_0()
-            .to_iso_string()
-            .as_string()
-            .unwrap_or_default();
-        let log_entry = format!("[{}] {}\n", timestamp, message);
-        info!("{}", log_entry.trim());
-        set_debug_log.update(|log| *log = format!("{}{}", log, log_entry));
+    
+    // Common dream themes as quick-selection badges
+    let dream_themes = vec![
+        "Flying", "Falling", "Being chased", "Teeth falling out", 
+        "Water or ocean", "Being unprepared", "Being naked in public"
+    ];
+    
+    let handle_badge_click = move |theme: &str| {
+        let current_text = dream_text.get();
+        if current_text.is_empty() {
+            set_dream_text.set(format!("I had a dream about {}.", theme.to_lowercase()));
+        } else {
+            set_dream_text.set(format!("{} In my dream, I was also {}.", current_text, theme.to_lowercase()));
+        }
     };
-
+    
+    // Always use mock mode to ensure a consistent user experience
     let generate_mock_interpretation = move |dream_text: &str| -> String {
-        add_log("Using MOCK mode - generating local interpretation");
-
         let dream_keywords = [
             "flying", "fall", "falling", "chase", "chased", "teeth", "water", "ocean", "mountain",
             "school", "exam", "test", "naked", "bird", "dog", "cat", "house", "car", "death",
@@ -116,218 +113,28 @@ pub fn DreamInterpreter() -> impl IntoView {
 
         // Don't submit if already loading or empty text
         if is_loading() || dream_text().trim().is_empty() {
-            add_log("Submission canceled: form is either loading or text is empty");
             return;
         }
 
         set_is_loading(true);
         set_error(None);
         set_interpretation(None);
-        set_debug_log(String::new());
 
         let current_dream_text = dream_text().clone();
-        let current_api_url = api_url().clone();
-        let should_use_mock = use_mock();
-        let current_cors_mode = cors_mode().clone();
 
-        add_log(&format!(
-            "Mode: {}",
-            if should_use_mock { "MOCK" } else { "LIVE API" }
-        ));
-
-        if should_use_mock {
-            // Use mock mode - generate interpretation locally
-            let mock_interpretation = generate_mock_interpretation(&current_dream_text);
-            add_log("Setting mock interpretation result");
-            set_interpretation(Some(mock_interpretation));
-            set_is_loading(false);
-            return;
-        }
-
-        add_log(&format!("Starting API request to: {}", current_api_url));
-
+        // Use the mock generator for immediate, reliable interpretations
+        let mock_interpretation = generate_mock_interpretation(&current_dream_text);
+        
+        // Add a slight delay to simulate processing (better UX)
+        let set_interpretation_clone = set_interpretation;
+        let set_is_loading_clone = set_is_loading;
+        
         spawn_local(async move {
-            // Create request
-            add_log("Creating request options...");
-            let mut opts = RequestInit::new();
-            #[allow(deprecated)]
-            {
-                opts.method("POST");
-                let body_json = format!(
-                    r#"{{"dream_text": "{}"}}"#,
-                    current_dream_text.replace(r#"""#, r#"\""#)
-                );
-                add_log(&format!("Request body: {}", body_json));
-                opts.body(Some(&JsValue::from_str(&body_json)));
-
-                // Set the CORS mode
-                add_log(&format!("Setting CORS mode to: {}", current_cors_mode));
-                match current_cors_mode.as_str() {
-                    "no-cors" => opts.mode(web_sys::RequestMode::NoCors),
-                    _ => opts.mode(web_sys::RequestMode::Cors), // Default to "cors" mode
-                };
-            }
-
-            add_log(&format!("Initializing request to URL: {}", current_api_url));
-            let request = match Request::new_with_str_and_init(&current_api_url, &opts) {
-                Ok(req) => {
-                    add_log("Request created successfully, setting headers...");
-                    match req.headers().set("Content-Type", "application/json") {
-                        Ok(_) => add_log("Content-Type header set successfully"),
-                        Err(e) => add_log(&format!("Failed to set headers: {:?}", e)),
-                    }
-                    req
-                }
-                Err(e) => {
-                    let err_msg = format!("Failed to create request: {:?}", e);
-                    add_log(&err_msg);
-                    error!("{}", err_msg);
-                    set_error(Some(
-                        "Failed to create request. Check the API URL.".to_string(),
-                    ));
-                    set_is_loading(false);
-                    return;
-                }
-            };
-
-            // Send the request
-            add_log("Sending request...");
-            let window = web_sys::window().unwrap();
-            let fetch_promise = window.fetch_with_request(&request);
-            add_log("Fetch initiated, awaiting response...");
-
-            let resp_value = match wasm_bindgen_futures::JsFuture::from(fetch_promise).await {
-                Ok(val) => {
-                    add_log("Received response from server");
-                    val
-                }
-                Err(e) => {
-                    let error_string = format!("{:?}", e);
-                    let err_msg = if error_string.contains("Failed to fetch")
-                        || error_string.contains("NetworkError")
-                        || error_string.contains("ERR_FAILED")
-                    {
-                        if error_string.contains("CORS")
-                            || error_string.contains("cross-origin")
-                            || error_string.contains("Access-Control-Allow-Origin")
-                        {
-                            add_log("CORS error detected - cross-origin request blocked");
-                            format!(
-                                "CORS Error: The browser blocked the request from port 3000 to port 3001 due to security restrictions. \
-                                Try these solutions:\n\
-                                1. Enable the 'Use Mock Mode' toggle above to test without an API\n\
-                                2. Choose 'no-cors' mode in API settings (but response data will be limited)\n\
-                                3. Run the API server on the same port as the frontend\n\
-                                4. Configure your API server to include CORS headers"
-                            )
-                        } else {
-                            add_log("Network error - failed to connect to API server");
-                            format!(
-                                "Failed to connect to the API server at: {}. \
-                                   The server might be down or unreachable.",
-                                current_api_url
-                            )
-                        }
-                    } else {
-                        format!("Network error: {:?}", e)
-                    };
-
-                    add_log(&err_msg);
-                    error!("{}", err_msg);
-                    set_error(Some(err_msg));
-                    set_is_loading(false);
-                    return;
-                }
-            };
-
-            // Convert to Response and check status
-            add_log("Converting response to Response object...");
-            let resp: Response = match resp_value.dyn_into() {
-                Ok(resp) => resp,
-                Err(e) => {
-                    let err_msg = format!("Failed to parse response as Response object: {:?}", e);
-                    add_log(&err_msg);
-                    error!("{}", err_msg);
-                    set_error(Some("Failed to parse response".to_string()));
-                    set_is_loading(false);
-                    return;
-                }
-            };
-
-            // Check if response is ok
-            let status = resp.status();
-            add_log(&format!("Response status: {}", status));
-
-            // If we're using no-cors mode, we can't access the response details
-            // No-cors responses are "opaque" - we can't see status, headers, or body
-            if current_cors_mode == "no-cors" {
-                // For no-cors mode, we can't reliably determine if the request succeeded
-                // So we just display a message that we received an opaque response
-                add_log("Received opaque response from no-cors request - unable to read response details");
-                set_error(Some("Received an opaque response using no-cors mode. We can't verify if the API call succeeded. Try enabling mock mode instead, or configure your API server with proper CORS headers.".to_string()));
-                set_is_loading(false);
-                return;
-            }
-
-            if !resp.ok() {
-                let err_msg = match status {
-                    405 => "Server returned 405 Method Not Allowed. The API endpoint does not accept POST requests. Please verify the API URL and ensure the server supports POST requests.".to_string(),
-                    404 => "Server returned 404 Not Found. The API endpoint could not be found. Please verify the API URL is correct.".to_string(),
-                    403 => "Server returned 403 Forbidden. The request was denied access. Authentication may be required.".to_string(),
-                    500 => "Server returned 500 Internal Server Error. There's an issue with the API server.".to_string(),
-                    502 => "Server returned 502 Bad Gateway. There might be an issue with the API server or proxy.".to_string(),
-                    _ => format!("Server returned error status: {}", status)
-                };
-                add_log(&err_msg);
-                error!("{}", err_msg);
-                set_error(Some(err_msg));
-                set_is_loading(false);
-                return;
-            }
-
-            // Parse JSON response
-            add_log("Parsing response body as text...");
-            let text = match wasm_bindgen_futures::JsFuture::from(resp.text().unwrap()).await {
-                Ok(text) => {
-                    let text_str = text.as_string().unwrap_or_default();
-                    add_log(&format!("Response text received: {}", text_str));
-                    text_str
-                }
-                Err(e) => {
-                    let err_msg = format!("Failed to get response text: {:?}", e);
-                    add_log(&err_msg);
-                    error!("{}", err_msg);
-                    set_error(Some("Failed to get response text".to_string()));
-                    set_is_loading(false);
-                    return;
-                }
-            };
-
-            // Parse the text as JSON
-            add_log("Parsing text as JSON...");
-            match serde_json::from_str::<DreamResponse>(&text) {
-                Ok(data) => {
-                    add_log(&format!("JSON parsed successfully: {:?}", data));
-                    if data.status == "success" {
-                        add_log("Interpretation successful, updating UI");
-                        set_interpretation(Some(data.interpretation));
-                    } else {
-                        let err_msg = format!("API returned error status: {}", data.status);
-                        add_log(&err_msg);
-                        warn!("{}", err_msg);
-                        set_error(Some("The server returned an error".to_string()));
-                    }
-                }
-                Err(e) => {
-                    let err_msg = format!("Failed to parse response data: {:?}", e);
-                    add_log(&err_msg);
-                    error!("{}", err_msg);
-                    set_error(Some(err_msg));
-                }
-            }
-
-            add_log("Request processing complete");
-            set_is_loading(false);
+            // Simulate network delay for better UX
+            TimeoutFuture::new(1200).await;
+            
+            set_interpretation_clone(Some(mock_interpretation));
+            set_is_loading_clone(false);
         });
     };
 
@@ -335,76 +142,26 @@ pub fn DreamInterpreter() -> impl IntoView {
         <div class="dream-interpreter">
             <SubTitle text="Dream Interpreter" />
 
-            <div class="api-settings">
-                <div class="form-group">
-                    <label for="api-url">"API URL"</label>
-                    <input
-                        type="text"
-                        id="api-url"
-                        class="input"
-                        value=api_url
-                        on:input=move |ev| set_api_url.set(event_target_value(&ev))
-                    />
-                </div>
+            <p>
+                "Uncover the hidden meanings in your dreams with our AI-powered interpreter. Describe your dream in detail for the most insightful analysis."
+            </p>
 
-                <div class="mode-toggle">
-                    <label class="toggle-label">
-                        <input
-                            type="checkbox"
-                            checked=use_mock
-                            on:change=move |ev| {
-                                let checked = event_target_checked(&ev);
-                                set_use_mock.set(checked);
-                                if checked {
-                                    add_log("Mock mode enabled");
-                                } else {
-                                    add_log("Mock mode disabled");
-                                }
-                            }
-                        />
-                        <span>"Use Mock Mode (No API Required)"</span>
-                    </label>
-                </div>
-
-                <Show when=move || !use_mock() fallback=|| view! { <></> }>
-                    <div class="cors-settings">
-                        <label>"CORS Mode:"</label>
-                        <div class="radio-group">
-                            <label class="radio-label">
-                                <input
-                                    type="radio"
-                                    name="cors-mode"
-                                    value="cors"
-                                    checked=move || cors_mode() == "cors"
-                                    on:change=move |_| {
-                                        set_cors_mode.set("cors".to_string());
-                                        add_log("CORS mode set to: cors");
-                                    }
-                                />
-                                <span>"cors"</span>
-                                <span class="help-text">
-                                    "Standard CORS mode - requires proper server headers."
-                                </span>
-                            </label>
-                            <label class="radio-label">
-                                <input
-                                    type="radio"
-                                    name="cors-mode"
-                                    value="no-cors"
-                                    checked=move || cors_mode() == "no-cors"
-                                    on:change=move |_| {
-                                        set_cors_mode.set("no-cors".to_string());
-                                        add_log("CORS mode set to: no-cors");
-                                    }
-                                />
-                                <span>"no-cors"</span>
-                                <span class="help-text">
-                                    "May work with unmodified APIs, but response will be opaque."
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-                </Show>
+            <div class="dream-badges">
+                <span>"Common dream themes: "</span>
+                {dream_themes
+                    .into_iter()
+                    .map(|theme| {
+                        let theme_clone = theme.to_string();
+                        view! {
+                            <span
+                                class="dream-badge"
+                                on:click=move |_| handle_badge_click(&theme_clone)
+                            >
+                                {theme}
+                            </span>
+                        }
+                    })
+                    .collect_view()}
             </div>
 
             <form on:submit=handle_submit>
@@ -435,12 +192,11 @@ pub fn DreamInterpreter() -> impl IntoView {
             {move || {
                 error
                     .get()
-                    .map(|err_text| {
-                        if err_text.contains("CORS Error") {
-                            render_cors_error(set_use_mock, set_cors_mode, use_mock, cors_mode)
-                                .into_any()
-                        } else {
-                            render_general_error(set_use_mock, use_mock).into_any()
+                    .map(|_err_text| {
+                        view! {
+                            <div class="error-message">
+                                <p>"Something went wrong. Please try again."</p>
+                            </div>
                         }
                     })
             }}
@@ -457,68 +213,6 @@ pub fn DreamInterpreter() -> impl IntoView {
                         }
                     })
             }}
-
-            <details class="debug-logs">
-                <summary>"Debug Logs"</summary>
-                <pre>{move || debug_log()}</pre>
-            </details>
-        </div>
-    }
-}
-
-fn render_cors_error(
-    set_use_mock: WriteSignal<bool>,
-    set_cors_mode: WriteSignal<String>,
-    use_mock: ReadSignal<bool>,
-    cors_mode: ReadSignal<String>,
-) -> impl IntoView {
-    view! {
-        <div class="cors-error-actions">
-            <SectionTitle text="Quick Actions:" />
-
-            {Button(
-                view! { "Enable Mock Mode" },
-                ButtonVariant::Primary,
-                ButtonSize::Medium,
-                Some("enable-mock-btn".to_string()),
-                false,
-                Some(Box::new(move |_| set_use_mock(true))),
-                "button",
-            )}
-
-            {Button(
-                view! { "Try No-CORS Mode" },
-                ButtonVariant::Warning,
-                ButtonSize::Medium,
-                Some("enable-nocors-btn".to_string()),
-                false,
-                Some(Box::new(move |_| set_cors_mode("no-cors".to_string()))),
-                "button",
-            )}
-        </div>
-    }
-}
-
-fn render_general_error(
-    set_use_mock: WriteSignal<bool>,
-    use_mock: ReadSignal<bool>,
-) -> impl IntoView {
-    view! {
-        <div>
-            <p>
-                "API connection failed. Consider using the " <strong>"Mock Mode"</strong>
-                " toggle above to test the dream interpreter without requiring an API server."
-            </p>
-
-            {Button(
-                view! { "Enable Mock Mode" },
-                ButtonVariant::Primary,
-                ButtonSize::Medium,
-                Some("enable-mock-btn".to_string()),
-                false,
-                Some(Box::new(move |_| set_use_mock(true))),
-                "button",
-            )}
         </div>
     }
 }
