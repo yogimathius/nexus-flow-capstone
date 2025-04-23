@@ -6,7 +6,7 @@
 
   - [x] Create badges that display categories with appropriate colors
   - [x] Ensure reusability for tags, metadata, and filters
-  - [ ] Add hover state and accessibility attributes
+  - [x] Add hover state and accessibility attributes
 
 - [ ] 2. **SearchBar Component**
 
