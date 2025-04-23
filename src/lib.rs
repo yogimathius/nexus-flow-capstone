@@ -7,9 +7,9 @@ mod components;
 mod pages;
 
 // Top-Level pages
-use crate::components::dream_interpreter::DreamInterpreter;
 use crate::pages::badge_demo::BadgeDemo;
 use crate::pages::button_demo::ButtonDemo;
+use crate::pages::dream_interpreter::DreamInterpreterPage;
 use crate::pages::home::Home;
 
 // Layout components
@@ -51,7 +51,7 @@ pub fn App() -> impl IntoView {
                         path=path!("/symbols")
                         view=|| view! { <h1>"Symbol Library - Coming Soon"</h1> }
                     />
-                    <Route path=path!("/interpret") view=|| view! { <DreamInterpreter /> } />
+                    <Route path=path!("/interpret") view=DreamInterpreterPage />
 
                     {}
                     <Route path=path!("/buttons") view=ButtonDemo />
