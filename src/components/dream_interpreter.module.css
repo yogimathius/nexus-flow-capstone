@@ -170,6 +170,30 @@
   border-left: 4px solid #ef4444;
   color: #ef4444;
   animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  position: relative;
+  overflow: hidden;
+}
+
+.error-message::before {
+  content: "⚠️";
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  font-size: 1.2rem;
+  opacity: 0.5;
+}
+
+.error-message p {
+  color: #ef4444 !important;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.error-message small {
+  display: block;
+  color: rgba(239, 68, 68, 0.8) !important;
+  font-size: 0.8rem;
+  padding-top: 0.2rem;
 }
 
 @keyframes fadeIn {

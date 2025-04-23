@@ -1,8 +1,9 @@
 use leptos::ev::SubmitEvent;
 use leptos::prelude::*;
 use gloo_timers::future::TimeoutFuture;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
+use log::{error, info};
 
 // Import our component libraries
 use crate::components::typography::{SubTitle, SectionTitle};
@@ -14,12 +15,18 @@ struct DreamResponse {
     status: String,
 }
 
+#[derive(Serialize, Debug)]
+struct DreamRequest {
+    dream_text: String,
+}
+
 #[component]
 pub fn DreamInterpreter() -> impl IntoView {
     let (dream_text, set_dream_text) = signal(String::new());
     let (interpretation, set_interpretation) = signal(None::<String>);
     let (is_loading, set_is_loading) = signal(false);
     let (error, set_error) = signal(None::<String>);
+    let (use_api, set_use_api) = signal(true); // Flag to control whether to use API or mock
     
     // Common dream themes as quick-selection badges
     let dream_themes = vec![
@@ -36,7 +43,7 @@ pub fn DreamInterpreter() -> impl IntoView {
         }
     };
     
-    // Always use mock mode to ensure a consistent user experience
+    // Fallback function for mock interpretation
     let generate_mock_interpretation = move |dream_text: &str| -> String {
         let dream_keywords = [
             "flying", "fall", "falling", "chase", "chased", "teeth", "water", "ocean", "mountain",
@@ -108,6 +115,60 @@ pub fn DreamInterpreter() -> impl IntoView {
         }
     };
 
+    let handle_api_toggle = move |_| {
+        set_use_api.update(|val| *val = !*val);
+    };
+
+    async fn fetch_interpretation(dream_text: String) -> Result<DreamResponse, String> {
+        let client = reqwest::Client::new();
+        let request_body = DreamRequest { dream_text };
+        
+        // Try different server URLs based on what might be available
+        let api_urls = [
+            "http://0.0.0.0:3003/api/interpret_dream",
+            "http://localhost:3003/api/interpret_dream",
+            "http://127.0.0.1:3003/api/interpret_dream"
+        ];
+        
+        let mut last_error = String::from("Failed to connect to any API endpoints");
+        
+        // Try each URL in sequence
+        for url in api_urls {
+            info!("Trying API endpoint: {}", url);
+            
+            match client
+                .post(url)
+                .json(&request_body)
+                .header("Origin", "https://localhost:3000") // Spoof the origin to match what the server expects
+                .send()
+                .await
+            {
+                Ok(response) => {
+                    if response.status().is_success() {
+                        match response.json::<DreamResponse>().await {
+                            Ok(dream_data) => return Ok(dream_data),
+                            Err(e) => {
+                                let error_msg = format!("Failed to parse response: {}", e);
+                                info!("{}", error_msg);
+                                last_error = error_msg;
+                            }
+                        }
+                    } else {
+                        last_error = format!("API returned error status: {}", response.status());
+                        info!("{}", last_error);
+                    }
+                },
+                Err(e) => {
+                    last_error = format!("Failed to connect to API at {}: {}", url, e);
+                    info!("{}", last_error);
+                }
+            }
+        }
+        
+        // If we got here, all attempts failed
+        Err(last_error)
+    }
+
     let handle_submit = move |ev: SubmitEvent| {
         ev.prevent_default();
 
@@ -121,19 +182,54 @@ pub fn DreamInterpreter() -> impl IntoView {
         set_interpretation(None);
 
         let current_dream_text = dream_text().clone();
+        let should_use_api = use_api.get();
 
-        // Use the mock generator for immediate, reliable interpretations
-        let mock_interpretation = generate_mock_interpretation(&current_dream_text);
-        
-        // Add a slight delay to simulate processing (better UX)
+        // Clones for use inside the async block
         let set_interpretation_clone = set_interpretation;
         let set_is_loading_clone = set_is_loading;
+        let set_error_clone = set_error;
         
         spawn_local(async move {
-            // Simulate network delay for better UX
-            TimeoutFuture::new(1200).await;
+            // Add a slight delay for better UX
+            TimeoutFuture::new(800).await;
             
-            set_interpretation_clone(Some(mock_interpretation));
+            if should_use_api {
+                // Use the API
+                info!("Using API for interpretation");
+                match fetch_interpretation(current_dream_text.clone()).await {
+                    Ok(response) => {
+                        if response.status == "success" {
+                            set_interpretation_clone(Some(response.interpretation));
+                        } else {
+                            set_error_clone(Some(format!("API error: {}", response.status)));
+                            
+                            // Fall back to mock mode after a brief delay
+                            TimeoutFuture::new(1500).await;
+                            info!("Falling back to mock data after API error");
+                            let fallback = generate_mock_interpretation(&current_dream_text);
+                            set_error_clone(None);
+                            set_interpretation_clone(Some(format!("(Fallback interpretation) {}", fallback)));
+                        }
+                    },
+                    Err(err) => {
+                        error!("API error: {}", err);
+                        set_error_clone(Some(format!("API connection error: {}", err)));
+                        
+                        // Fall back to mock after showing the error message for a moment
+                        TimeoutFuture::new(1500).await;
+                        info!("Falling back to mock data after API error");
+                        let fallback = generate_mock_interpretation(&current_dream_text);
+                        set_error_clone(None);
+                        set_interpretation_clone(Some(format!("(Fallback interpretation) {}", fallback)));
+                    }
+                }
+            } else {
+                // Use the mock generator
+                info!("Using mock interpretation");
+                let mock_interpretation = generate_mock_interpretation(&current_dream_text);
+                set_interpretation_clone(Some(mock_interpretation));
+            }
+            
             set_is_loading_clone(false);
         });
     };
@@ -145,6 +241,18 @@ pub fn DreamInterpreter() -> impl IntoView {
             <p>
                 "Uncover the hidden meanings in your dreams with our AI-powered interpreter. Describe your dream in detail for the most insightful analysis."
             </p>
+
+            <div class="api-toggle">
+                <label class="toggle-label">
+                    <input type="checkbox" checked=use_api on:change=handle_api_toggle />
+                    <span>"Use API for interpretation"</span>
+                </label>
+                <span class="api-status">
+                    {move || {
+                        if use_api() { "Using external AI API" } else { "Using local mock data" }
+                    }}
+                </span>
+            </div>
 
             <div class="dream-badges">
                 <span>"Common dream themes: "</span>
@@ -192,10 +300,17 @@ pub fn DreamInterpreter() -> impl IntoView {
             {move || {
                 error
                     .get()
-                    .map(|_err_text| {
+                    .map(|err_text| {
                         view! {
                             <div class="error-message">
-                                <p>"Something went wrong. Please try again."</p>
+                                <p>{err_text}</p>
+                                <small>
+                                    {if err_text.contains("API") {
+                                        "Falling back to local interpretation in a moment..."
+                                    } else {
+                                        "Please try again later."
+                                    }}
+                                </small>
                             </div>
                         }
                     })
