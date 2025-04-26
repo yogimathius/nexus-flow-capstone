@@ -1,4 +1,4 @@
-use crate::components::badge::{Badge, BadgeVariant};
+use crate::components::{Badge, BadgeVariant};
 use leptos::{prelude::*, *};
 
 #[component]
