@@ -1,0 +1,147 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 10px 18px;
+}
+
+.btn::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%);
+  transform-origin: 50% 50%;
+}
+
+.btn:active::after {
+  opacity: 0.3;
+  transform: scale(80, 80) translate(-50%);
+  transition: all 0.6s ease-out;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.4),
+    0 0 0 1px rgba(168, 85, 247, 0.2);
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Hover animation */
+.btn:not(:disabled)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 0.4s ease, opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.btn:not(:disabled):hover::before {
+  transform: scale(2);
+  opacity: 1;
+}
+
+.btn:active {
+  transform: scale(0.98) translateY(1px);
+}
+
+/* Variants */
+.primary {
+  background-color: #7c3aed; /* Vivid Violet */
+  color: white;
+}
+
+.primary:hover:not(:disabled) {
+  background-color: #6d28d9; /* Darker shade */
+  transform: scale(1.02) translateY(-1px); /* Subtle scale + lift */
+  box-shadow: 0 4px 8px rgba(124, 58, 237, 0.3);
+}
+
+.secondary {
+  background-color: #27272a; /* From background layers - neutral-700 */
+  color: #f4f4f5; /* Ultra-light neutral for text */
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: #3f3f46; /* Slightly lighter */
+  transform: scale(1.02) translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.warning {
+  background-color: #facc15; /* Warning color from guideline */
+  color: #0f0f12; /* Dark text for contrast */
+}
+
+.warning:hover:not(:disabled) {
+  background-color: #eab308; /* Slightly darker */
+  transform: scale(1.02) translateY(-1px);
+  box-shadow: 0 4px 8px rgba(250, 204, 21, 0.3);
+}
+
+.danger {
+  background-color: #ef4444; /* Error color from guideline */
+  color: white;
+}
+
+.danger:hover:not(:disabled) {
+  background-color: #dc2626; /* Slightly darker */
+  transform: scale(1.02) translateY(-1px);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+}
+
+/* Sizes */
+.small {
+  font-size: 0.875rem;
+  padding: 8px 14px;
+}
+
+.medium {
+  font-size: 1rem;
+  /* Using the standard padding from .btn */
+}
+
+.large {
+  font-size: 1.125rem;
+  padding: 12px 22px;
+}
+
+/* These were causing CSS issues - replaced with proper CSS */
+.ring-2 {
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.5); /* A855F7 from guidelines */
+}
+
+.ring-blue-500 {
+  /* Using box-shadow with the accent color */
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.5);
+}
