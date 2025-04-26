@@ -87,6 +87,8 @@ impl Server {
             }
         };
 
+        println!("config: {:?}", config);
+
         // Create or check database
         match db::migrate::create_database_if_not_exists(&config.database_url).await {
             Ok(_) => println!("Database checked/created successfully"),
