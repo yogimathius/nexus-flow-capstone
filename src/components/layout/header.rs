@@ -63,7 +63,7 @@ pub fn Header() -> impl IntoView {
         <header class="header">
             <div class="container">
                 <div class="header-content">
-                    <nav>
+                    <nav class="nav-left">
                         <a href="/" class="nav-link">
                             "Home"
                         </a>
@@ -75,24 +75,26 @@ pub fn Header() -> impl IntoView {
                         </a>
                     </nav>
 
-                    <a href="/" class="logo">
+                    <a href="/" class="logo center-logo">
                         <span class="animated-emoji">{current_emoji}</span>
                         " Dream Interpreter AI"
                     </a>
 
-                    <button
-                        on:click=toggle_dark_mode
-                        class="theme-toggle"
-                        aria-label=move || {
-                            if is_dark_mode.get() {
-                                "Switch to light mode"
-                            } else {
-                                "Switch to dark mode"
+                    <div class="nav-right">
+                        <button
+                            on:click=toggle_dark_mode
+                            class="theme-toggle"
+                            aria-label=move || {
+                                if is_dark_mode.get() {
+                                    "Switch to light mode"
+                                } else {
+                                    "Switch to dark mode"
+                                }
                             }
-                        }
-                    >
-                        {move || if is_dark_mode.get() { "🌞" } else { "🌙" }}
-                    </button>
+                        >
+                            {move || if is_dark_mode.get() { "🌞" } else { "🌙" }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
