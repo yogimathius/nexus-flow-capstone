@@ -1,11 +1,88 @@
 use rmcp::{ServiceExt, object, transport::TokioChildProcess};
+use serde::{Deserialize, Serialize};
 use serde_json;
 use std::error::Error;
 use tokio::process::Command;
 use tracing::{debug, error, info};
 
+/// A trait defining the interface for MCP clients
+/// This allows for easy mocking in tests
+pub trait McpClientTrait: Send + Sync {
+    fn clone_box(&self) -> Box<dyn McpClientTrait>;
+
+    /// Process text with the specified operation
+    fn process_text<'a>(
+        &'a self,
+        text: &'a str,
+        operation: TextOperation,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<String, Box<dyn Error + Send + Sync>>>
+                + Send
+                + 'a,
+        >,
+    >;
+
+    /// Look up symbol meanings
+    fn lookup_symbols<'a>(
+        &'a self,
+        symbols: Vec<&'a str>,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<
+                    Output = Result<Vec<SymbolMeaning>, Box<dyn Error + Send + Sync>>,
+                > + Send
+                + 'a,
+        >,
+    >;
+}
+
+// Implement Clone for Box<dyn McpClientTrait>
+impl Clone for Box<dyn McpClientTrait> {
+    fn clone(&self) -> Self {
+        self.clone_box()
+    }
+}
+
 pub struct McpClient {
     client: rmcp::service::RunningService<rmcp::RoleClient, ()>,
+}
+
+// Implement the trait for the real client
+impl McpClientTrait for McpClient {
+    fn clone_box(&self) -> Box<dyn McpClientTrait> {
+        // This is a stub that will panic if actually used
+        // In a real application, use Arc/Mutex instead
+        panic!("McpClient cannot be cloned directly; use Arc<dyn McpClientTrait> instead")
+    }
+
+    fn process_text<'a>(
+        &'a self,
+        text: &'a str,
+        operation: TextOperation,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<String, Box<dyn Error + Send + Sync>>>
+                + Send
+                + 'a,
+        >,
+    > {
+        Box::pin(self.process_text_impl(text, operation))
+    }
+
+    fn lookup_symbols<'a>(
+        &'a self,
+        symbols: Vec<&'a str>,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<
+                    Output = Result<Vec<SymbolMeaning>, Box<dyn Error + Send + Sync>>,
+                > + Send
+                + 'a,
+        >,
+    > {
+        Box::pin(self.lookup_symbols_impl(symbols))
+    }
 }
 
 impl McpClient {
@@ -37,8 +114,8 @@ impl McpClient {
         Ok(Self { client })
     }
 
-    // Process text: analyze, transform, or enhance text
-    pub async fn process_text(
+    // Private implementation methods used by the trait methods
+    async fn process_text_impl(
         &self,
         text: &str,
         operation: TextOperation,
@@ -212,6 +289,110 @@ impl McpClient {
             }
         }
     }
+
+    async fn lookup_symbols_impl(
+        &self,
+        symbols: Vec<&str>,
+    ) -> Result<Vec<SymbolMeaning>, Box<dyn Error + Send + Sync>> {
+        info!("Looking up {} symbols from ontology", symbols.len());
+
+        // First attempt to use MCP if available
+        match self.try_mcp_symbol_lookup(&symbols).await {
+            Ok(result) => {
+                info!("Successfully looked up symbols through MCP");
+                return Ok(result);
+            }
+            Err(e) => {
+                info!(
+                    "MCP symbol lookup unavailable: {}. Using local ontology.",
+                    e
+                );
+                // Fall back to local lookup
+                self.lookup_symbols_locally(symbols)
+            }
+        }
+    }
+
+    async fn try_mcp_symbol_lookup(
+        &self,
+        symbols: &[&str],
+    ) -> Result<Vec<SymbolMeaning>, Box<dyn Error + Send + Sync>> {
+        debug!("Attempting to use MCP for symbol lookup");
+
+        match self
+            .client
+            .call_tool(rmcp::model::CallToolRequestParam {
+                name: "ontology_lookup".into(),
+                arguments: Some(object!({
+                    "symbols": symbols
+                })),
+            })
+            .await
+        {
+            Ok(result) => {
+                let json_result = serde_json::to_value(&result)?;
+                if let Some(_result_array) = json_result.as_array() {
+                    let meanings: Vec<SymbolMeaning> = serde_json::from_value(json_result)?;
+                    return Ok(meanings);
+                }
+                Err("Invalid response format from MCP".into())
+            }
+            Err(e) => {
+                debug!("MCP ontology lookup unavailable: {:?}", e);
+                Err("MCP ontology lookup tool not available".into())
+            }
+        }
+    }
+
+    fn lookup_symbols_locally(
+        &self,
+        symbols: Vec<&str>,
+    ) -> Result<Vec<SymbolMeaning>, Box<dyn Error + Send + Sync>> {
+        info!("Looking up symbols in local ontology database");
+
+        // Implement a basic local lookup for common symbols
+        let mut results = Vec::new();
+
+        for symbol in symbols {
+            let meaning = match symbol.to_lowercase().as_str() {
+                "water" => SymbolMeaning {
+                    symbol: symbol.to_string(),
+                    meaning: "Represents the unconscious, emotion, or the flow of life".to_string(),
+                    contexts: vec!["Jungian".to_string(), "Universal".to_string()],
+                },
+                "fire" => SymbolMeaning {
+                    symbol: symbol.to_string(),
+                    meaning: "Transformation, passion, or destruction and rebirth".to_string(),
+                    contexts: vec!["Alchemical".to_string(), "Universal".to_string()],
+                },
+                "snake" => SymbolMeaning {
+                    symbol: symbol.to_string(),
+                    meaning: "Renewal, transformation, healing, or kundalini energy".to_string(),
+                    contexts: vec!["Jungian".to_string(), "Mythological".to_string()],
+                },
+                "falling" => SymbolMeaning {
+                    symbol: symbol.to_string(),
+                    meaning: "Loss of control, anxiety, or letting go".to_string(),
+                    contexts: vec!["Psychological".to_string()],
+                },
+                "flying" => SymbolMeaning {
+                    symbol: symbol.to_string(),
+                    meaning: "Freedom, transcendence, or escape from limitations".to_string(),
+                    contexts: vec!["Psychological".to_string(), "Spiritual".to_string()],
+                },
+                // Add more symbols as needed
+                _ => SymbolMeaning {
+                    symbol: symbol.to_string(),
+                    meaning: "No standard meaning found in local database".to_string(),
+                    contexts: vec![],
+                },
+            };
+
+            results.push(meaning);
+        }
+
+        Ok(results)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -235,6 +416,13 @@ impl TextOperation {
             )),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SymbolMeaning {
+    pub symbol: String,
+    pub meaning: String,
+    pub contexts: Vec<String>,
 }
 
 #[cfg(test)]
