@@ -45,3 +45,11 @@ pub fn create_test_ai_client() -> AiClient {
 
     AiClient::new(api_key, github_token)
 }
+
+// Helper to create a mock AI client with a custom URL (for tests with wiremock)
+#[cfg(test)]
+pub fn create_test_ai_client_with_url(url: &str) -> AiClient {
+    initialize();
+
+    AiClient::new("test_api_key".to_string(), None).with_openrouter_url(url)
+}
