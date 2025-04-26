@@ -1,0 +1,137 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 9999px; /* Pill shape */
+  padding: 0.375rem 0.75rem;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.badge::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%);
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+
+.badge.clickable {
+  cursor: pointer;
+}
+
+.badge.clickable:hover {
+  transform: scale(1.05) translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.badge.clickable:active {
+  transform: scale(0.98) translateY(1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.badge.clickable:active::after {
+  opacity: 0.3;
+  transform: scale(40, 40) translate(-50%);
+  transition: all 0.6s ease-out;
+}
+
+.badge:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Default Badge */
+.default {
+  background-color: #3f3f46; /* gray-700 */
+  color: #f4f4f5; /* gray-100 */
+}
+
+.default:hover {
+  background-color: #52525b; /* gray-600 */
+}
+
+/* Nature Badge */
+.nature {
+  background-color: #059669; /* green-600 */
+  color: white;
+}
+
+.nature:hover {
+  background-color: #047857; /* green-700 */
+}
+
+/* Emotion Badge */
+.emotion {
+  background-color: #ec4899; /* pink-500 */
+  color: white;
+}
+
+.emotion:hover {
+  background-color: #db2777; /* pink-600 */
+}
+
+/* Animal Badge */
+.animal {
+  background-color: #b45309; /* yellow-700 */
+  color: white;
+}
+
+.animal:hover {
+  background-color: #92400e; /* yellow-800 */
+}
+
+/* Object Badge */
+.object {
+  background-color: #4b5563; /* gray-600 */
+  color: white;
+}
+
+.object:hover {
+  background-color: #374151; /* gray-700 */
+}
+
+/* Person Badge */
+.person {
+  background-color: #3b82f6; /* blue-500 */
+  color: white;
+}
+
+.person:hover {
+  background-color: #2563eb; /* blue-600 */
+}
+
+/* Mythological Badge */
+.mythological {
+  background-color: #7c3aed; /* violet-600 - our primary brand color */
+  color: white;
+}
+
+.mythological:hover {
+  background-color: #6d28d9; /* violet-700 */
+}
+
+/* Dream Badge */
+.dream {
+  background-color: #8b5cf6; /* violet-500 */
+  color: white;
+}
+
+.dream:hover {
+  background-color: #7c3aed; /* violet-600 */
+}
