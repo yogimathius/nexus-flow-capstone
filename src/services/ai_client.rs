@@ -116,6 +116,11 @@ impl AiClient {
         self
     }
 
+    // Check if MCP client is initialized
+    pub fn has_mcp_client(&self) -> bool {
+        self.mcp_client.is_some()
+    }
+
     pub async fn request_dream_interpretation(
         &self,
         dream_text: &str,

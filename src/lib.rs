@@ -11,9 +11,10 @@ pub use server::Server;
 
 // Re-export important clients for convenience
 pub use services::ai_client::AiClient;
-pub use services::mcp_client::McpClient;
+pub use services::mcp_client::{McpClient, McpClientTrait};
 
 use sqlx::PgPool;
+use std::sync::Arc;
 
 // Application state shared with handlers
 #[derive(Clone)]
@@ -24,9 +25,22 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(db_pool: PgPool, api_key: String, github_token: Option<String>) -> Self {
-        AppState {
-            db_pool,
-            ai_client: AiClient::new(api_key, github_token),
-        }
+        // Create AI client without MCP initially
+        let ai_client = AiClient::new(api_key, github_token);
+
+        AppState { db_pool, ai_client }
+    }
+
+    // Adds MCP client to the app state by connecting it to the AI client
+    pub async fn with_mcp_client(
+        &mut self,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // Initialize MCP client
+        let mcp_client = McpClient::new().await?;
+
+        // Connect MCP client to AI client
+        self.ai_client = self.ai_client.clone().with_mcp_client(mcp_client);
+
+        Ok(())
     }
 }

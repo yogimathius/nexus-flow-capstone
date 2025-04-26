@@ -107,7 +107,20 @@ impl Server {
         }
 
         // Create application state
-        let app_state = AppState::new(db_pool, config.openrouter_api_key, config.github_token);
+        let mut app_state = AppState::new(db_pool, config.openrouter_api_key, config.github_token);
+
+        // Try to initialize MCP client and connect it to AI client
+        match app_state.with_mcp_client().await {
+            Ok(()) => {
+                println!("MCP client initialized and connected to AI client successfully");
+            }
+            Err(e) => {
+                println!(
+                    "Failed to initialize MCP client: {}. Continuing without MCP functionality.",
+                    e
+                );
+            }
+        };
 
         // Create the router with app state
         let app = api::router(app_state);
