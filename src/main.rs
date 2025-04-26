@@ -5,9 +5,6 @@ use tracing_subscriber::{self, prelude::*};
 
 #[tokio::main]
 async fn main() {
-    // Load environment variables from .env file
-    dotenv().ok();
-
     // Setup detailed logging
     tracing_subscriber::registry()
         .with(

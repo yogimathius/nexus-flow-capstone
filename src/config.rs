@@ -13,6 +13,7 @@ pub struct Config {
 pub enum ConfigError {
     MissingEnv(String),
     ParseError(String),
+    DotEnvError(dotenvy::Error),
 }
 
 impl fmt::Display for ConfigError {
@@ -20,12 +21,22 @@ impl fmt::Display for ConfigError {
         match self {
             ConfigError::MissingEnv(var) => write!(f, "Missing environment variable: {}", var),
             ConfigError::ParseError(err) => write!(f, "Error parsing config: {}", err),
+            ConfigError::DotEnvError(err) => write!(f, "Error loading .env file: {}", err),
         }
     }
 }
 
 impl Config {
     pub fn from_env() -> Result<Self, ConfigError> {
+        // Ensure .env file is loaded
+        let dot_env_result = dotenvy::dotenv();
+        if let Err(e) = dot_env_result {
+            println!("Warning: .env file could not be loaded: {}", e);
+            // Continue anyway, in case env vars are set another way
+        } else {
+            println!("Loaded environment from .env file successfully");
+        }
+
         // Required environment variables
         let database_url = env::var("DATABASE_URL")
             .map_err(|_| ConfigError::MissingEnv("DATABASE_URL".to_string()))?;
@@ -34,7 +45,16 @@ impl Config {
             .map_err(|_| ConfigError::MissingEnv("OPENROUTER_API_KEY".to_string()))?;
 
         // Optional environment variables
-        let github_token = env::var("GITHUB_TOKEN").ok();
+        let github_token = match env::var("GITHUB_TOKEN") {
+            Ok(token) => {
+                println!("GitHub token loaded successfully, length: {}", token);
+                Some(token)
+            }
+            Err(_) => {
+                println!("No GitHub token found in environment variables");
+                None
+            }
+        };
 
         // Optional port with default value
         let port = match env::var("PORT") {
