@@ -1,10 +1,4 @@
-use axum::{
-    Router,
-    extract::Json,
-    http::{HeaderValue, Method, StatusCode, header},
-    response::IntoResponse,
-    routing::{get, post},
-};
+use axum::http::{HeaderValue, Method};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tokio;
@@ -13,10 +7,6 @@ use tower_http::cors::{Any, CorsLayer};
 use crate::AppState;
 use crate::api;
 use crate::db;
-use crate::services::{
-    ai_client::AiClient,
-    mcp_client::{McpClient, TextOperation},
-};
 
 // API Types
 #[derive(Deserialize)]

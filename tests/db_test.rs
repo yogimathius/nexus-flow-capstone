@@ -1,6 +1,5 @@
 mod setup;
 
-use sqlx::{PgPool, postgres::PgPoolOptions};
 
 // This module will be implemented along with the database models
 // For now, we'll set up basic tests that will be filled in as we implement

@@ -1,5 +1,4 @@
 use axum_server::services::mcp_client::{McpClientTrait, SymbolMeaning, TextOperation};
-use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::future::Future;
 use std::pin::Pin;

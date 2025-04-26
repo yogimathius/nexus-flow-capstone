@@ -4,7 +4,6 @@ use axum::{
     body::Body,
     http::{Request, StatusCode, header},
 };
-use bytes::Bytes;
 use serde_json::{Value, json};
 use tower::ServiceExt;
 

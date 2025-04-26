@@ -1,6 +1,4 @@
 use axum_server::Server;
-use dotenv::dotenv;
-use std::env;
 use tracing_subscriber::{self, prelude::*};
 
 #[tokio::main]

@@ -1,4 +1,4 @@
-use crate::services::mcp_client::{McpClientTrait, SymbolMeaning};
+use crate::services::mcp_client::McpClientTrait;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json;

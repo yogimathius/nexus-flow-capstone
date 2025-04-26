@@ -1,10 +1,9 @@
 mod mocks;
 mod setup;
 
-use axum_server::services::ai_client::{AiClient, ClientError};
+use axum_server::services::ai_client::AiClient;
 use serde_json::json;
-use std::sync::Arc;
-use wiremock::matchers::{any, method, path};
+use wiremock::matchers::{any, method};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 /// Test dream interpretation with mocked services

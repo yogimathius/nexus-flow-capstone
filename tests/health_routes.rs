@@ -4,7 +4,6 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use bytes::Bytes;
 use tower::ServiceExt;
 
 #[tokio::test]
