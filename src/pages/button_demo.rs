@@ -1,26 +1,10 @@
-use crate::components::button::{Button, ButtonSize, ButtonVariant};
-use leptos::{prelude::*, *};
-use web_sys::MouseEvent;
+use crate::components::{Button, ButtonSize, ButtonVariant};
+use leptos::prelude::*;
 
 #[component]
 pub fn ButtonDemo() -> impl IntoView {
     let (count, set_count) = signal(0);
     let (message, set_message) = signal(String::new());
-
-    let increment: Box<dyn Fn(MouseEvent)> = Box::new(move |_: MouseEvent| {
-        set_count.update(|c| *c += 1);
-        set_message.set(format!("Count incremented to {}", count.get()));
-    });
-
-    let decrement: Box<dyn Fn(MouseEvent)> = Box::new(move |_: MouseEvent| {
-        set_count.update(|c| *c -= 1);
-        set_message.set(format!("Count decremented to {}", count.get()));
-    });
-
-    let reset: Box<dyn Fn(MouseEvent)> = Box::new(move |_: MouseEvent| {
-        set_count.set(0);
-        set_message.set("Count reset to 0".to_string());
-    });
 
     // Get message box class
     let message_box_class = move || {
@@ -41,17 +25,26 @@ pub fn ButtonDemo() -> impl IntoView {
                 <div class="counter">
                     <div class="counterValue">{count}</div>
                     <div class="counterControls">
-                        <Button variant=ButtonVariant::Primary on_click=Some(increment)>
-                            "Increment"
-                        </Button>
+                        <div on:click=move |_| {
+                            set_count.update(|c| *c += 1);
+                            set_message.set(format!("Count incremented to {}", count.get()));
+                        }>
+                            <Button variant=ButtonVariant::Primary>"Increment"</Button>
+                        </div>
 
-                        <Button variant=ButtonVariant::Secondary on_click=Some(decrement)>
-                            "Decrement"
-                        </Button>
+                        <div on:click=move |_| {
+                            set_count.update(|c| *c -= 1);
+                            set_message.set(format!("Count decremented to {}", count.get()));
+                        }>
+                            <Button variant=ButtonVariant::Secondary>"Decrement"</Button>
+                        </div>
 
-                        <Button variant=ButtonVariant::Danger on_click=Some(reset)>
-                            "Reset"
-                        </Button>
+                        <div on:click=move |_| {
+                            set_count.set(0);
+                            set_message.set("Count reset to 0".to_string());
+                        }>
+                            <Button variant=ButtonVariant::Danger>"Reset"</Button>
+                        </div>
                     </div>
                 </div>
 
