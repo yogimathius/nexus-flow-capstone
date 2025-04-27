@@ -35,6 +35,17 @@ pub trait McpClientTrait: Send + Sync {
                 + 'a,
         >,
     >;
+
+    /// List available tools from the MCP server
+    fn list_tools<'a>(
+        &'a self,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<Vec<String>, Box<dyn Error + Send + Sync>>>
+                + Send
+                + 'a,
+        >,
+    >;
 }
 
 // Implement Clone for Box<dyn McpClientTrait>
@@ -45,7 +56,7 @@ impl Clone for Box<dyn McpClientTrait> {
 }
 
 pub struct McpClient {
-    client: rmcp::service::RunningService<rmcp::RoleClient, ()>,
+    client: rmcp::service::RunningService<rmcp::RoleClient, rmcp::model::InitializeRequestParam>,
 }
 
 // Implement the trait for the real client
@@ -83,11 +94,31 @@ impl McpClientTrait for McpClient {
     > {
         Box::pin(self.lookup_symbols_impl(symbols))
     }
+
+    fn list_tools<'a>(
+        &'a self,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<Vec<String>, Box<dyn Error + Send + Sync>>>
+                + Send
+                + 'a,
+        >,
+    > {
+        Box::pin(self.list_tools_impl())
+    }
 }
 
 impl McpClient {
     pub async fn new() -> Result<Self, Box<dyn Error + Send + Sync>> {
         info!("Initializing MCP client...");
+
+        // Try to connect to an external MCP server first
+        if let Ok(client) = Self::try_connect_to_external_server().await {
+            info!("Successfully connected to external MCP server");
+            return Ok(Self { client });
+        }
+
+        info!("No external MCP server found, starting built-in server...");
 
         // Initialize the MCP client with the server-everything implementation
         let mut command = Command::new("npx");
@@ -97,9 +128,31 @@ impl McpClient {
 
         debug!("Starting MCP server with command: {:?}", command);
 
-        let client = match ().serve(TokioChildProcess::new(&mut command)?).await {
+        let transport = match TokioChildProcess::new(&mut command) {
+            Ok(process) => process,
+            Err(e) => {
+                error!("Failed to start MCP server process: {:?}", e);
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("Failed to start MCP server process: {}", e),
+                )));
+            }
+        };
+
+        // Create client info
+        use rmcp::model::{ClientCapabilities, ClientInfo, Implementation};
+        let client_info = ClientInfo {
+            protocol_version: Default::default(),
+            capabilities: ClientCapabilities::default(),
+            client_info: Implementation {
+                name: "Dream Interpreter MCP Client".to_string(),
+                version: "0.1.0".to_string(),
+            },
+        };
+
+        let client = match client_info.serve(transport).await {
             Ok(client) => {
-                info!("MCP client successfully initialized");
+                info!("MCP client successfully initialized with built-in server");
                 client
             }
             Err(e) => {
@@ -112,6 +165,64 @@ impl McpClient {
         };
 
         Ok(Self { client })
+    }
+
+    async fn try_connect_to_external_server() -> Result<
+        rmcp::service::RunningService<rmcp::RoleClient, rmcp::model::InitializeRequestParam>,
+        Box<dyn Error + Send + Sync>,
+    > {
+        use rmcp::{
+            model::{ClientCapabilities, ClientInfo, Implementation},
+            transport::SseTransport,
+        };
+
+        // First, try connecting to a local MCP server (the symbol-ontology service)
+        let url = std::env::var("MCP_SERVER_URL")
+            .unwrap_or_else(|_| "http://127.0.0.1:3002/sse".to_string());
+
+        info!("Attempting to connect to external MCP server at {}", url);
+
+        match SseTransport::start(&url).await {
+            Ok(transport) => {
+                info!("Connected to external MCP server at {}", url);
+
+                // Create client info
+                let client_info = ClientInfo {
+                    protocol_version: Default::default(),
+                    capabilities: ClientCapabilities::default(),
+                    client_info: Implementation {
+                        name: "Dream Interpreter MCP Client".to_string(),
+                        version: "0.1.0".to_string(),
+                    },
+                };
+
+                // Initialize the MCP client
+                match client_info.serve(transport).await {
+                    Ok(client) => {
+                        info!("Successfully initialized MCP client with external server");
+                        Ok(client)
+                    }
+                    Err(e) => {
+                        error!(
+                            "Failed to initialize MCP client with external server: {:?}",
+                            e
+                        );
+                        Err(format!(
+                            "Failed to initialize MCP client with external server: {}",
+                            e
+                        )
+                        .into())
+                    }
+                }
+            }
+            Err(e) => {
+                info!(
+                    "Could not connect to external MCP server at {}: {:?}",
+                    url, e
+                );
+                Err(format!("Could not connect to external MCP server: {}", e).into())
+            }
+        }
     }
 
     // Private implementation methods used by the trait methods
@@ -317,29 +428,151 @@ impl McpClient {
         &self,
         symbols: &[&str],
     ) -> Result<Vec<SymbolMeaning>, Box<dyn Error + Send + Sync>> {
-        debug!("Attempting to use MCP for symbol lookup");
+        debug!("Attempting to look up symbols via MCP: {:?}", symbols);
 
-        match self
-            .client
-            .call_tool(rmcp::model::CallToolRequestParam {
-                name: "ontology_lookup".into(),
-                arguments: Some(object!({
-                    "symbols": symbols
-                })),
-            })
+        if symbols.is_empty() {
+            // If no symbols provided, just return empty result
+            return Ok(Vec::new());
+        }
+
+        // For each symbol, try to get information
+        let mut results = Vec::new();
+
+        for symbol in symbols {
+            // Use search_symbols for precise lookup as it requires a query parameter
+            let params = serde_json::json!({
+                "query": symbol,
+                "limit": 5 // Limit results to avoid too much data
+            });
+
+            debug!(
+                "Searching for symbol '{}' using search_symbols tool",
+                symbol
+            );
+
+            // Use a timeout to prevent hanging
+            match tokio::time::timeout(
+                std::time::Duration::from_secs(3),
+                self.client.call_tool(rmcp::model::CallToolRequestParam {
+                    name: "search_symbols".into(),
+                    arguments: params.as_object().cloned(),
+                }),
+            )
             .await
-        {
-            Ok(result) => {
-                let json_result = serde_json::to_value(&result)?;
-                if let Some(_result_array) = json_result.as_array() {
-                    let meanings: Vec<SymbolMeaning> = serde_json::from_value(json_result)?;
-                    return Ok(meanings);
+            {
+                Ok(Ok(result)) => {
+                    debug!("Successfully found symbols matching '{}'", symbol);
+
+                    // Parse the result JSON to extract symbol meanings
+                    if let Ok(json_value) = serde_json::to_value(&result) {
+                        debug!("Symbol search result: {:?}", json_value);
+
+                        if let Some(items) = json_value.as_array() {
+                            for item in items {
+                                if let Some(obj) = item.as_object() {
+                                    let symbol_name = obj
+                                        .get("name")
+                                        .and_then(|v| v.as_str())
+                                        .unwrap_or(symbol)
+                                        .to_string();
+
+                                    let meaning = obj
+                                        .get("description")
+                                        .and_then(|v| v.as_str())
+                                        .unwrap_or("No description available")
+                                        .to_string();
+
+                                    let category = obj
+                                        .get("category")
+                                        .and_then(|v| v.as_str())
+                                        .unwrap_or("unknown");
+
+                                    results.push(SymbolMeaning {
+                                        symbol: symbol_name,
+                                        meaning,
+                                        contexts: vec![category.to_string()],
+                                    });
+                                }
+                            }
+                        }
+                    }
                 }
-                Err("Invalid response format from MCP".into())
+                Ok(Err(e)) => {
+                    debug!("MCP search_symbols tool error for '{}': {:?}", symbol, e);
+                    // Continue to try other symbols
+                }
+                Err(_) => {
+                    debug!("MCP search_symbols tool timed out for '{}'", symbol);
+                    // Continue to try other symbols
+                }
             }
-            Err(e) => {
-                debug!("MCP ontology lookup unavailable: {:?}", e);
-                Err("MCP ontology lookup tool not available".into())
+        }
+
+        if !results.is_empty() {
+            debug!("Found {} symbol meanings via MCP", results.len());
+            return Ok(results);
+        }
+
+        // If no results found via specific lookup, try the general get_symbols API
+        debug!("No specific symbols found, trying general symbols API");
+
+        let params = serde_json::json!({
+            "limit": 10
+        });
+
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            self.client.call_tool(rmcp::model::CallToolRequestParam {
+                name: "get_symbols".into(),
+                arguments: params.as_object().cloned(),
+            }),
+        )
+        .await
+        {
+            Ok(Ok(result)) => {
+                debug!("Successfully retrieved general symbols");
+
+                if let Ok(json_value) = serde_json::to_value(&result) {
+                    if let Some(items) = json_value.as_array() {
+                        for item in items {
+                            if let Some(obj) = item.as_object() {
+                                let symbol_name = obj
+                                    .get("name")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or("unknown")
+                                    .to_string();
+
+                                let meaning = obj
+                                    .get("description")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or("No description available")
+                                    .to_string();
+
+                                let category = obj
+                                    .get("category")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or("general");
+
+                                results.push(SymbolMeaning {
+                                    symbol: symbol_name,
+                                    meaning,
+                                    contexts: vec![category.to_string()],
+                                });
+                            }
+                        }
+                    }
+                }
+
+                debug!("Found {} general symbols via MCP", results.len());
+                Ok(results)
+            }
+            Ok(Err(e)) => {
+                debug!("MCP get_symbols tool error: {:?}", e);
+                Err(format!("MCP symbol lookup tool error: {}", e).into())
+            }
+            Err(_) => {
+                debug!("MCP get_symbols tool timed out");
+                Err("MCP symbol lookup timed out".into())
             }
         }
     }
@@ -392,6 +625,24 @@ impl McpClient {
         }
 
         Ok(results)
+    }
+
+    async fn list_tools_impl(&self) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
+        info!("Listing available MCP tools");
+
+        match self.client.list_tools(Default::default()).await {
+            Ok(tools) => {
+                let tool_names: Vec<String> =
+                    tools.tools.iter().map(|t| t.name.to_string()).collect();
+
+                info!("Available MCP tools: {:?}", tool_names);
+                Ok(tool_names)
+            }
+            Err(e) => {
+                error!("Failed to list MCP tools: {:?}", e);
+                Err(format!("Failed to list MCP tools: {}", e).into())
+            }
+        }
     }
 }
 
