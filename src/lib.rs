@@ -38,6 +38,12 @@ impl AppState {
         // Initialize MCP client
         let mcp_client = McpClient::new().await?;
 
+        // Verify MCP client is actually working by testing client capabilities
+        // We just need to make sure the client is connected, not that specific tools work
+        let _client_capabilities = mcp_client.list_tools().await?;
+
+        // If we get here, the client is working
+
         // Connect MCP client to AI client
         self.ai_client = self.ai_client.clone().with_mcp_client(mcp_client);
 
