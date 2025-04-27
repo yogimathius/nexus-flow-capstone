@@ -7,6 +7,8 @@ pub struct Config {
     pub openrouter_api_key: String,
     pub github_token: Option<String>,
     pub port: u16,
+    pub mcp_server_url: Option<String>,
+    pub enable_mcp: bool,
 }
 
 #[derive(Debug)]
@@ -64,11 +66,42 @@ impl Config {
             Err(_) => 3003, // Default port
         };
 
+        // Optional MCP configuration
+        let mcp_server_url = match env::var("MCP_SERVER_URL") {
+            Ok(url) => {
+                println!("MCP server URL configured: {}", url);
+                Some(url)
+            }
+            Err(_) => {
+                println!("No MCP server URL specified, will use default (127.0.0.1:3002)");
+                None
+            }
+        };
+
+        let enable_mcp = match env::var("ENABLE_MCP") {
+            Ok(val) => match val.to_lowercase().as_str() {
+                "true" | "1" | "yes" | "on" => {
+                    println!("MCP client is enabled");
+                    true
+                }
+                _ => {
+                    println!("MCP client is disabled by configuration");
+                    false
+                }
+            },
+            Err(_) => {
+                println!("ENABLE_MCP not specified, defaulting to enabled");
+                true
+            }
+        };
+
         Ok(Config {
             database_url,
             openrouter_api_key,
             github_token,
             port,
+            mcp_server_url,
+            enable_mcp,
         })
     }
 }
