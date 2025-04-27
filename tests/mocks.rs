@@ -63,4 +63,16 @@ impl McpClientTrait for MockMcpClient {
             Ok(results)
         })
     }
+
+    fn list_tools<'a>(
+        &'a self,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<Vec<String>, Box<dyn Error + Send + Sync>>>
+                + Send
+                + 'a,
+        >,
+    > {
+        todo!()
+    }
 }
