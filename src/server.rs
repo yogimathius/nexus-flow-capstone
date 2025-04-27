@@ -109,18 +109,29 @@ impl Server {
         // Create application state
         let mut app_state = AppState::new(db_pool, config.openrouter_api_key, config.github_token);
 
-        // Try to initialize MCP client and connect it to AI client
-        match app_state.with_mcp_client().await {
-            Ok(()) => {
-                println!("MCP client initialized and connected to AI client successfully");
+        // Try to initialize MCP client and connect it to AI client if enabled
+        if config.enable_mcp {
+            println!("MCP client integration is enabled, attempting to connect...");
+
+            // Set MCP server URL in environment if provided
+            if let Some(url) = &config.mcp_server_url {
+                unsafe {
+                    std::env::set_var("MCP_SERVER_URL", url);
+                }
             }
-            Err(e) => {
+
+            if let Err(e) = app_state.with_mcp_client().await {
                 println!(
-                    "Failed to initialize MCP client: {}. Continuing without MCP functionality.",
+                    "Failed to initialize or verify MCP client connection: {}. Continuing without MCP functionality. \
+                     Make sure the MCP server is running at the expected endpoint.",
                     e
                 );
+            } else {
+                println!("MCP client successfully initialized and verified connection");
             }
-        };
+        } else {
+            println!("MCP client integration is disabled by configuration");
+        }
 
         // Create the router with app state
         let app = api::router(app_state);
