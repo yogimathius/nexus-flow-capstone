@@ -4,9 +4,13 @@ use crate::components::{
     typography::{SectionTitle, SubTitle},
 };
 use leptos::prelude::*;
-use serde::{Deserialize, Serialize};
-use wasm_bindgen_futures::spawn_local;
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::spawn_local;
+
+// Import CSS module
+const _: &str = include_str!("./dream_interpreter.module.css");
 
 // Dream interpretation tips
 const DREAM_TIPS: &[&str] = &[
@@ -48,12 +52,14 @@ const COMMON_DREAM_THEMES: &[&str] = &[
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DreamRequest {
     dream_text: String,
+    save: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DreamResponse {
     interpretation: String,
     status: String,
+    id: Option<String>,
 }
 
 #[component]
@@ -73,6 +79,12 @@ pub fn DreamInterpreter() -> impl IntoView {
     // Signal for the button's disabled state
     let (button_disabled, set_button_disabled) = signal(true);
 
+    // Signal for the auto-save checkbox
+    let (auto_save, set_auto_save) = signal(true);
+
+    // Signal for the saved dream ID
+    let (saved_dream_id, set_saved_dream_id) = signal(Option::<String>::None);
+
     // API endpoint
     let api_url = "http://localhost:3003/api/interpret_dream";
 
@@ -84,27 +96,95 @@ pub fn DreamInterpreter() -> impl IntoView {
 
     // Handle badge click
     let handle_badge_click = move |theme: &str| {
+        // Create sentence templates for each theme
+        let sentence = match theme {
+            "Flying" => "I was flying over a landscape and felt a sense of freedom.",
+            "Falling" => "I experienced falling from a great height and felt scared.",
+            "Being chased" => "Something or someone was chasing me and I couldn't escape.",
+            "Teeth falling out" => "My teeth started to crumble and fall out unexpectedly.",
+            "Being unprepared" => {
+                "I found myself in a situation where I was completely unprepared."
+            }
+            "Finding a new room" => {
+                "I discovered a new room in a familiar building that I never knew existed."
+            }
+            "Water" => "There was a large body of water that played an important role in my dream.",
+            "Death or dying" => {
+                "The dream involved death or dying in some way that felt significant."
+            }
+            "Being trapped" => "I felt trapped in a confined space with no way to escape.",
+            "Snakes" => "There were snakes in my dream that seemed to have some special meaning.",
+            "Money" => {
+                "Money played an important role in my dream, affecting the events that unfolded."
+            }
+            "Celebrity" => "A celebrity appeared in my dream and interacted with me directly.",
+            "School or work" => {
+                "I was back at school or work, but things were different than in real life."
+            }
+            "Naked in public" => {
+                "I realized I was naked or underdressed in a public place and felt embarrassed."
+            }
+            "Unable to move" => {
+                "I tried to move but my body wouldn't respond, leaving me paralyzed."
+            }
+            "Lost" => "I was lost in an unfamiliar place and couldn't find my way back.",
+            "Reunited" => "I was reunited with someone I haven't seen in a long time.",
+            "Time travel" => "I traveled through time and experienced events from a different era.",
+            "Animals" => "Animals played a significant role in my dream with unusual behaviors.",
+            "Childhood home" => {
+                "I was back in my childhood home, noticing details I had forgotten."
+            }
+            "Fire" => "There was a fire that both frightened and fascinated me in the dream.",
+            _ => match theme.to_lowercase().as_str() {
+                "dogs" | "dog" => {
+                    "I saw a dog in my dream and it seemed to represent something important."
+                }
+                "cats" | "cat" => "A cat appeared in my dream and its behavior seemed symbolic.",
+                "ocean" | "sea" => {
+                    "I was near the ocean, and the waves seemed to reflect my emotions."
+                }
+                "mountains" | "mountain" => {
+                    "I was in the mountains, feeling both small and powerful."
+                }
+                "family" | "parents" => "My family appeared in my dream in an unusual context.",
+                "work" | "job" => {
+                    "I was at work in my dream, but things were different than reality."
+                }
+                "baby" | "child" => {
+                    "There was a baby or child in my dream that seemed significant."
+                }
+                _ => "My dream featured this theme in a way that felt meaningful.",
+            },
+        };
+
+        // Get current text and prepare to add new content
         let current = dream_text.get();
-        if !current.is_empty() && !current.ends_with(' ') {
-            set_dream_text.update(|s| s.push(' '));
-        }
+        let new_text = if current.is_empty() {
+            sentence.to_string()
+        } else if current.trim_end().ends_with('.')
+            || current.trim_end().ends_with('!')
+            || current.trim_end().ends_with('?')
+        {
+            format!("{} {}", current, sentence)
+        } else {
+            format!("{}. {}", current, sentence)
+        };
 
-        let theme_with_space = format!("{} ", theme);
-        set_dream_text.update(|s| s.push_str(&theme_with_space));
+        // Set the new text directly
+        set_dream_text.set(new_text);
 
-        // Explicitly enable the button when a dream theme is added
-        if dream_text.get().trim().len() > 0 {
-            set_button_disabled.set(false);
-        }
+        // Enable the button
+        set_button_disabled.set(false);
     };
 
     // Handle form submission
     let handle_submit = move |ev: web_sys::SubmitEvent| {
         ev.prevent_default();
 
-        // Reset previous interpretation and error
+        // Reset previous interpretation, error and saved ID
         set_interpretation.set(None);
         set_error.set(None);
+        set_saved_dream_id.set(None);
 
         let dream = dream_text.get();
 
@@ -117,15 +197,16 @@ pub fn DreamInterpreter() -> impl IntoView {
         // Set loading state to true
         set_is_loading.set(true);
 
-        // Create the request payload
+        // Create the request payload with save parameter
         let request_payload = DreamRequest {
             dream_text: dream.clone(),
+            save: auto_save.get(),
         };
 
         // Use reqwest to make the API call
         spawn_local(async move {
             let client = Client::new();
-            
+
             match client
                 .post(api_url)
                 .header("Content-Type", "application/json")
@@ -137,7 +218,15 @@ pub fn DreamInterpreter() -> impl IntoView {
                     if response.status().is_success() {
                         match response.json::<DreamResponse>().await {
                             Ok(data) => {
-                                set_interpretation.set(Some(data.interpretation));
+                                // Process the interpretation to improve formatting
+                                let formatted_interpretation =
+                                    format_interpretation(&data.interpretation);
+                                set_interpretation.set(Some(formatted_interpretation));
+
+                                // Set the saved dream ID if available
+                                if let Some(id) = data.id {
+                                    set_saved_dream_id.set(Some(id));
+                                }
                             }
                             Err(e) => {
                                 set_error.set(Some(format!("Failed to parse response: {}", e)));
@@ -169,47 +258,89 @@ pub fn DreamInterpreter() -> impl IntoView {
         });
     };
 
+    // Format the interpretation text to display better in HTML
+    fn format_interpretation(text: &str) -> String {
+        // Remove <think> blocks
+        let text = if let Some(start_idx) = text.find("<think>") {
+            if let Some(end_idx) = text.find("</think>") {
+                let before = &text[0..start_idx];
+                let after = &text[(end_idx + 8)..];
+                format!("{}{}", before, after)
+            } else {
+                text.to_string()
+            }
+        } else {
+            text.to_string()
+        };
+
+        // Replace markdown headings with styled HTML
+        let text = text
+            .replace("###", "<h3 class=\"interp-heading\">")
+            .replace("####", "<h4 class=\"interp-subheading\">")
+            .replace("\n\n", "<br/><br/>")
+            .replace("\n---\n", "<hr class=\"interp-divider\"/>");
+
+        // Replace markdown bold/italic with HTML
+        let text = text.replace("**", "<strong>").replace("*", "<em>");
+
+        // Replace any remaining newlines with breaks
+        text.replace("\n", "<br/>")
+    }
+
     view! {
         <div class="dream-interpreter">
             <SectionTitle text="Dream Interpreter" />
             <p class="intro-text">
-                "Enter your dream description below and our AI-powered interpreter will analyze
-                the patterns and symbols to provide insights into your subconscious mind. 
-                For better results, include key details and emotions you felt during the dream."
+                "Enter your dream below and our AI will analyze the patterns and symbols to provide insights."
             </p>
 
-            <div class="dream-badges">
-                <span class="badge-label">"Common Dream Themes:"</span>
-                {COMMON_DREAM_THEMES
-                    .iter()
-                    .map(|&theme| {
-                        let theme_clone = theme.to_string();
-                        view! {
-                            <Badge
-                                on_click=Box::new(move || handle_badge_click(&theme_clone))
-                                variant=BadgeVariant::Default
-                                class="dream-badge".to_string()
-                            >
-                                {theme}
-                            </Badge>
-                        }
-                    })
-                    .collect::<Vec<_>>()}
-            </div>
+            <form on:submit=handle_submit class="dream-form">
+                <label for="dream-text" class="form-label">"Describe your dream in detail:"</label>
+                <textarea
+                    id="dream-text"
+                    class="textarea"
+                    placeholder="I dreamt that I was flying over mountains and oceans..."
+                    prop:value=dream_text
+                    on:input=move |ev| {
+                        set_dream_text.set(event_target_value(&ev));
+                    }
+                    rows=4
+                ></textarea>
 
-            <form on:submit=handle_submit>
-                <div class="form-group">
-                    <label for="dream-text">"Describe your dream in detail:"</label>
-                    <textarea
-                        id="dream-text"
-                        class="textarea"
-                        placeholder="I dreamt that I was flying over mountains and oceans..."
-                        prop:value=dream_text
-                        on:input=move |ev| {
-                            set_dream_text.set(event_target_value(&ev));
+                <div class="dream-badges">
+                    <span class="badge-label">"Common Dream Themes:"</span>
+                    <div class="badge-container">
+                        {COMMON_DREAM_THEMES
+                            .iter()
+                            .map(|&theme| {
+                                let theme_clone = theme.to_string();
+                                view! {
+                                    <Badge
+                                        on_click=Box::new(move || handle_badge_click(&theme_clone))
+                                        variant=BadgeVariant::Default
+                                        class="dream-badge".to_string()
+                                    >
+                                        {theme}
+                                    </Badge>
+                                }
+                            })
+                            .collect::<Vec<_>>()}
+                    </div>
+                    <p class="badge-helper-text">"Click on themes  to add descriptive sentences to your dream."</p>
+                </div>
+
+                <div class="save-option">
+                    <input
+                        type="checkbox"
+                        id="auto-save"
+                        checked=auto_save.get()
+                        on:change=move |ev| {
+                            if let Some(target) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok()) {
+                                set_auto_save.set(target.checked());
+                            }
                         }
-                        rows=6
-                    ></textarea>
+                    />
+                    <label for="auto-save">"Automatically save this dream to your journal"</label>
                 </div>
 
                 {move || {
@@ -238,23 +369,34 @@ pub fn DreamInterpreter() -> impl IntoView {
                         view! {
                             <div class="interpretation">
                                 <SubTitle text="Your Dream Interpretation" />
-                                <p class="interpretation-text">{interp}</p>
+                                <div class="interpretation-text" inner_html=interp></div>
+                                {move || {
+                                    saved_dream_id.get().map(|id| {
+                                        view! {
+                                            <div class="saved-message">
+                                                <div class="saved-icon">"OK"</div>
+                                                "Dream saved to your journal (ID: " {id.chars().take(8).collect::<String>()} ")"
+                                            </div>
+                                        }
+                                    })
+                                }}
                             </div>
                         }
                     })
             }}
-        </div>
 
-        <div class="tips-section">
-            <h3 class="tips-title">"Tips for Better Dream Recall & Interpretation"</h3>
-            <ul class="tips-list">
-                {DREAM_TIPS
-                    .iter()
-                    .map(|&tip| {
-                        view! { <li class="tip-item">{tip}</li> }
-                    })
-                    .collect::<Vec<_>>()}
-            </ul>
+            <div class="tips-section">
+                <h3 class="tips-title">"Tips for Better Dream Recall"</h3>
+                <ul class="tips-list">
+                    {DREAM_TIPS
+                        .iter()
+                        .take(4) // Only show 4 tips to save space
+                        .map(|&tip| {
+                            view! { <li class="tip-item">{tip}</li> }
+                        })
+                        .collect::<Vec<_>>()}
+                </ul>
+            </div>
         </div>
     }
 }
