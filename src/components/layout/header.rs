@@ -73,6 +73,9 @@ pub fn Header() -> impl IntoView {
                         <a href="/interpret" class="nav-link">
                             "Interpret"
                         </a>
+                        <a href="/journal" class="nav-link">
+                            "Journal"
+                        </a>
                     </nav>
 
                     <a href="/" class="logo center-logo">
