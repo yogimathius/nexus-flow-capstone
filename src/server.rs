@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tokio;
 use tower_http::cors::{Any, CorsLayer};
+use tracing::info;
 
 use crate::AppState;
 use crate::api;
@@ -49,6 +50,7 @@ impl Server {
             .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
             .allow_origin("https://localhost:3000".parse::<HeaderValue>().unwrap())
             .allow_origin("http://127.0.0.1:3004".parse::<HeaderValue>().unwrap())
+            .allow_origin("http://127.0.0.1:3001".parse::<HeaderValue>().unwrap())
             // Allow common methods
             .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
             // Allow common headers
@@ -68,22 +70,22 @@ impl Server {
         // Load configuration
         let config = match crate::config::Config::from_env() {
             Ok(config) => {
-                println!("Configuration loaded successfully");
+                info!("Configuration loaded successfully");
                 config
             }
             Err(e) => {
-                eprintln!("Failed to load configuration: {}", e);
+                tracing::error!("Failed to load configuration: {}", e);
                 return;
             }
         };
 
-        println!("config: {:?}", config);
+        info!("config: {:?}", config);
 
         // Create or check database
         match db::migrate::create_database_if_not_exists(&config.database_url).await {
-            Ok(_) => println!("Database checked/created successfully"),
+            Ok(_) => info!("Database checked/created successfully"),
             Err(e) => {
-                eprintln!("Database setup error: {}", e);
+                tracing::error!("Database setup error: {}", e);
                 return;
             }
         }
@@ -91,27 +93,29 @@ impl Server {
         // Connect to database
         let db_pool = match db::create_pool(&config.database_url).await {
             Ok(pool) => {
-                println!("Connected to database successfully");
+                info!("Connected to database successfully");
                 pool
             }
             Err(e) => {
-                eprintln!("Failed to connect to database: {}", e);
+                tracing::error!("Failed to connect to database: {}", e);
                 return;
             }
         };
 
         // Run migrations
+        info!("Running database migrations...");
         if let Err(e) = db::migrate::run_migrations(&db_pool).await {
-            eprintln!("Migration error: {}", e);
+            tracing::error!("Migration error: {}", e);
             return;
         }
+        info!("Migrations complete!");
 
         // Create application state
         let mut app_state = AppState::new(db_pool, config.openrouter_api_key, config.github_token);
 
         // Try to initialize MCP client and connect it to AI client if enabled
         if config.enable_mcp {
-            println!("MCP client integration is enabled, attempting to connect...");
+            info!("MCP client integration is enabled, attempting to connect...");
 
             // Set MCP server URL in environment if provided
             if let Some(url) = &config.mcp_server_url {
@@ -121,71 +125,42 @@ impl Server {
             }
 
             if let Err(e) = app_state.with_mcp_client().await {
-                println!(
+                tracing::warn!(
                     "Failed to initialize or verify MCP client connection: {}. Continuing without MCP functionality. \
                      Make sure the MCP server is running at the expected endpoint.",
                     e
                 );
             } else {
-                println!("MCP client successfully initialized and verified connection");
+                info!("MCP client successfully initialized and verified connection");
             }
         } else {
-            println!("MCP client integration is disabled by configuration");
+            info!("MCP client integration is disabled by configuration");
         }
 
         // Create the router with app state
         let app = api::router(app_state);
 
         // Add CORS
-        let app = app.layer(
-            CorsLayer::new()
-                .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
-                .allow_origin("https://localhost:3000".parse::<HeaderValue>().unwrap())
-                .allow_origin("http://127.0.0.1:3004".parse::<HeaderValue>().unwrap())
-                .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-                .allow_headers(Any),
-        );
+        let cors = CorsLayer::new()
+            .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
+            .allow_origin("https://localhost:3000".parse::<HeaderValue>().unwrap())
+            .allow_origin("http://127.0.0.1:3004".parse::<HeaderValue>().unwrap())
+            .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+            .allow_headers(Any);
+
+        // Add trace layer for HTTP request/response logging
+        let app = app
+            .layer(cors)
+            .layer(tower_http::trace::TraceLayer::new_for_http());
 
         // Bind to address
         let addr = SocketAddr::from(([0, 0, 0, 0], self.port));
-        println!("Starting server on {}", addr);
+        info!("Starting server on {}", addr);
 
         // Start the server
         let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
         axum::serve(listener, app).await.unwrap_or_else(|e| {
-            eprintln!("Server error: {:?}", e);
+            tracing::error!("Server error: {:?}", e);
         });
-    }
-
-    fn print_available_endpoints(&self) {
-        println!("Available endpoints:");
-        println!("  GET  /health - Health check endpoint");
-        println!("  POST /api/process_text - Process text with operations");
-        println!("  POST /api/interpret_dream - Interpret dreams using AI");
-        println!("");
-        println!("Example usage:");
-        println!(
-            "  curl -X POST http://localhost:{}/api/process_text \\",
-            self.port
-        );
-        println!("    -H \"Content-Type: application/json\" \\");
-        println!(
-            "    -d '{{\"text\": \"this is a sample text. it needs formatting!\", \"operation\": \"format\"}}'"
-        );
-        println!("");
-        println!("Dream interpretation example:");
-        println!(
-            "  curl -v -X POST http://localhost:{}/api/interpret_dream \\",
-            self.port
-        );
-        println!("    -H \"Content-Type: application/json\" \\");
-        println!("    -d '{{\"dream_text\": \"I was flying over a city made of crystal.\"}}'");
-        println!("");
-        println!("Available operations:");
-        println!("  count    - Count characters, words, and lines");
-        println!("  validate - Check text for validity and patterns");
-        println!("  format   - Format and clean text (capitalize, etc.)");
-        println!("  analyze  - Analyze text sentiment");
-        println!("");
     }
 }
