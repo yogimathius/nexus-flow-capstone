@@ -26,6 +26,13 @@ inject_scripts = true
 # An optional cargo profile to use
 # cargo_profile = "release-trunk"
 
+# Add wasm-bindgen specific options
+[tools.wasm-bindgen]
+version = "0.2.100"
+wasm-opt = ["-O3"]
+# Important: This will ensure the wasm-bindgen environment is properly configured
+target = "web"
+
 # No hooks section needed anymore
 
 [watch]
@@ -38,7 +45,7 @@ ignore = []
 # The address to serve on.
 addresses = ["127.0.0.1"]
 # The port to serve on.
-port = 3001
+port = 3004
 # Aliases to serve, typically found in an /etc/hosts file.
 # aliases = ["http://localhost.mywebsite.com"]
 # Disable the reverse DNS lookup during startup
