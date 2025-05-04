@@ -2,7 +2,7 @@ use crate::components::DreamInterpreter;
 use leptos::prelude::*;
 
 // Import CSS classes directly to reference them in our HTML
-const _: &str = include_str!("dream_interpreter.module.css");
+const _: &str = include_str!("./dream_interpreter.module.css");
 
 #[component]
 pub fn DreamInterpreterPage() -> impl IntoView {
@@ -12,8 +12,7 @@ pub fn DreamInterpreterPage() -> impl IntoView {
                 <h1 class="pageTitle">"Dream Interpretation Portal"</h1>
                 <p class="pageDescription">
                     "Our AI-powered dream interpreter helps you uncover the hidden meanings in your dreams.
-                    Dreams often reflect our subconscious thoughts, emotions, and experiences. 
-                    By understanding your dreams, you can gain valuable insights into your inner world."
+                    Dreams reflect our subconscious thoughts and emotions."
                 </p>
             </div>
 
