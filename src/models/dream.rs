@@ -7,10 +7,19 @@ pub type DreamId = Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Dream {
+    #[serde(serialize_with = "serialize_uuid")]
     pub id: Uuid,
     pub text: String,
     pub interpretation: String,
     pub created_at: DateTime<Utc>,
+}
+
+// Helper function to serialize UUID as String
+fn serialize_uuid<S>(id: &Uuid, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&id.to_string())
 }
 
 // Helper function to convert OffsetDateTime to DateTime<Utc>
