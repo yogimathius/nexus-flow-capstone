@@ -2,6 +2,7 @@
 pub mod api;
 pub mod config;
 pub mod db;
+pub mod logging;
 pub mod models;
 pub mod server;
 pub mod services;
@@ -14,7 +15,6 @@ pub use services::ai_client::AiClient;
 pub use services::mcp_client::{McpClient, McpClientTrait};
 
 use sqlx::PgPool;
-use std::sync::Arc;
 
 // Application state shared with handlers
 #[derive(Clone)]

@@ -1,27 +1,25 @@
 use axum_server::Server;
-use tracing_subscriber::{self, prelude::*};
+use tracing::info;
+
+mod logging;
 
 #[tokio::main]
-async fn main() {
-    // Setup detailed logging
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info,rmcp=debug".into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize enhanced logging
+    logging::setup_logging().expect("Failed to set up logging");
 
     // Parse command line arguments to get port
     let args: Vec<String> = std::env::args().collect();
     let port = parse_port_from_args(&args).unwrap_or(3003);
 
-    println!("Initializing Dream Interpreter API...");
+    info!("Initializing Dream Interpreter API...");
 
     // Create and run the server with the specified port
     let server = Server::new(port);
-    println!("Starting server on port {}...", port);
+    info!("Starting server on port {}...", port);
     server.run().await;
+
+    Ok(())
 }
 
 // Function to parse port from command line arguments
