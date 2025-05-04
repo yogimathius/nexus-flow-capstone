@@ -79,6 +79,26 @@ struct AzureCompletionResponse {
     choices: Vec<AzureChoice>,
 }
 
+// GitHub AI API request/response types
+#[derive(Serialize)]
+struct GithubCompletionRequest {
+    messages: Vec<Message>,
+    max_tokens: u32,
+    model: String,
+    temperature: f32,
+    top_p: f32,
+}
+
+#[derive(Deserialize)]
+struct GithubChoice {
+    message: ResponseMessage,
+}
+
+#[derive(Deserialize)]
+struct GithubCompletionResponse {
+    choices: Vec<GithubChoice>,
+}
+
 // Client implementation
 #[derive(Clone)]
 pub struct AiClient {
@@ -177,10 +197,10 @@ impl AiClient {
 
         prompt.push_str("\nProvide analysis of the key symbols, potential meanings, and psychological insights from this dream. Consider archetypes, personal associations, and emotional resonance.");
 
-        // Try Azure API first if GitHub token is available
+        // Try GitHub API first if GitHub token is available
         if let Some(github_token) = &self.github_token {
             match self
-                .request_azure_interpretation(&prompt, github_token)
+                .request_github_interpretation(&prompt, github_token)
                 .await
             {
                 Ok(result) => return Ok(result),
@@ -190,12 +210,12 @@ impl AiClient {
                         ClientError::RateLimitedError | ClientError::ModelNotAvailableError
                     ) {
                         println!(
-                            "Azure API request failed with limit error, falling back to OpenRouter: {:?}",
+                            "GitHub API request failed with limit error, falling back to OpenRouter: {:?}",
                             e
                         );
                         // Fall through to OpenRouter
                     } else {
-                        println!("Azure API request failed with error: {:?}", e);
+                        println!("GitHub API request failed with error: {:?}", e);
                         return Err(e);
                     }
                 }
@@ -244,45 +264,55 @@ impl AiClient {
         found_symbols
     }
 
-    async fn request_azure_interpretation(
+    async fn request_github_interpretation(
         &self,
         prompt: &str,
         github_token: &str,
     ) -> Result<String, ClientError> {
-        println!("Sending request to Azure Inference API with DeepSeek-R1 model...");
+        println!("Sending request to GitHub Inference API with DeepSeek-V3-0324 model...");
 
-        let azure_request = AzureCompletionRequest {
-            messages: vec![Message {
-                role: String::from("user"),
-                content: prompt.to_string(),
-            }],
+        let github_request = GithubCompletionRequest {
+            messages: vec![
+                Message {
+                    role: String::from("system"),
+                    content: String::from(
+                        "You are a skilled dream interpreter with expertise in Jungian psychology, symbolism, and dream analysis.",
+                    ),
+                },
+                Message {
+                    role: String::from("user"),
+                    content: prompt.to_string(),
+                },
+            ],
             max_tokens: 1000,
-            model: String::from("DeepSeek-R1"),
+            model: String::from("deepseek/DeepSeek-V3-0324"),
+            temperature: 1.0,
+            top_p: 1.0,
         };
 
         let response = self
             .client
-            .post("https://models.inference.ai.azure.com/chat/completions")
+            .post("https://models.github.ai/inference/chat/completions")
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", github_token))
-            .json(&azure_request)
+            .json(&github_request)
             .send()
             .await
             .map_err(ClientError::RequestError)?;
 
         let status = response.status();
-        println!("Received response from Azure API with status: {}", status);
+        println!("Received response from GitHub API with status: {}", status);
 
         if status.is_client_error() {
             if status.as_u16() == 429 {
-                println!("Azure API rate limit exceeded");
+                println!("GitHub API rate limit exceeded");
                 return Err(ClientError::RateLimitedError);
             } else {
                 let error_text = response
                     .text()
                     .await
                     .unwrap_or_else(|_| "Unknown error".to_string());
-                println!("Azure API client error: {}", error_text);
+                println!("GitHub API client error: {}", error_text);
                 return Err(ClientError::ApiKeyError(error_text));
             }
         }
@@ -292,28 +322,28 @@ impl AiClient {
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            println!("Azure API error: {}", error_text);
+            println!("GitHub API error: {}", error_text);
             return Err(ClientError::ApiKeyError(error_text));
         }
 
         let response_text = response.text().await.map_err(ClientError::RequestError)?;
-        println!("Raw Azure API Response: {}", response_text);
+        println!("Raw GitHub API Response: {}", response_text);
 
-        let azure_completion: AzureCompletionResponse =
+        let github_completion: GithubCompletionResponse =
             serde_json::from_str(&response_text).map_err(ClientError::ParseError)?;
 
-        match azure_completion.choices.first() {
+        match github_completion.choices.first() {
             Some(choice) => {
                 let content = choice.message.content.clone();
                 if content.is_empty() {
-                    println!("Warning: Received empty content from Azure API");
+                    println!("Warning: Received empty content from GitHub API");
                     return Err(ClientError::EmptyContentError);
                 }
-                println!("Successfully extracted interpretation from Azure API response");
+                println!("Successfully extracted interpretation from GitHub API response");
                 Ok(content)
             }
             None => {
-                eprintln!("No choices found in Azure API response");
+                eprintln!("No choices found in GitHub API response");
                 Err(ClientError::NoChoicesError)
             }
         }
@@ -322,7 +352,7 @@ impl AiClient {
     async fn request_openrouter_interpretation(&self, prompt: &str) -> Result<String, ClientError> {
         println!("Sending request to OpenRouter API with DeepSeek model...");
 
-        let model = "deepseek/deepseek-r1:free";
+        let model = "openai/gpt-4.1";
 
         let request_body = CompletionRequest {
             model: String::from(model),
@@ -375,6 +405,17 @@ impl AiClient {
                 Err(ClientError::NoChoicesError)
             }
         }
+    }
+
+    async fn request_azure_interpretation(
+        &self,
+        prompt: &str,
+        github_token: &str,
+    ) -> Result<String, ClientError> {
+        // This method is kept for backward compatibility but will be deprecated
+        println!("Azure API endpoint is deprecated. Using GitHub AI API instead.");
+        self.request_github_interpretation(prompt, github_token)
+            .await
     }
 }
 
