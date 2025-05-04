@@ -1,0 +1,295 @@
+.dream-journal {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.intro-text {
+  color: #e0e0e0;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+/* Filters and Search */
+.filters-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.search-form {
+  display: flex;
+  flex: 1;
+  min-width: 260px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #444;
+  border-radius: 4px 0 0 4px;
+  background: #2a2a2a;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.search-button {
+  background: #6a3de8;
+  color: white;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  padding: 0 1.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.search-button:hover {
+  background: #7d52f5;
+}
+
+.refresh-button {
+  background: #2d2d2d;
+  color: white;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.refresh-button:hover {
+  background: #3d3d3d;
+  border-color: #555;
+}
+
+.date-filter {
+  min-width: 150px;
+}
+
+.date-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* Journal Content */
+.journal-content {
+  min-height: 400px;
+}
+
+/* Dream Cards Grid */
+.dreams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.dream-card {
+  background: #2d2d2d;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dream-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+}
+
+.dream-date {
+  color: #a7a7a7;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.dream-title {
+  color: #fff;
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
+.dream-interpretation {
+  color: #e0e0e0;
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+  line-height: 1.5;
+}
+
+.view-dream-link {
+  display: inline-block;
+  background: #6a3de8;
+  color: white;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  align-self: flex-start;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.view-dream-link:hover {
+  background: #7d52f5;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #a7a7a7;
+}
+
+.interpret-link {
+  display: inline-block;
+  background: #6a3de8;
+  color: white;
+  text-decoration: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.interpret-link:hover {
+  background: #7d52f5;
+}
+
+/* Loading Animation */
+.loading {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+}
+
+.loading div {
+  width: 1rem;
+  height: 1rem;
+  background-color: #6a3de8;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loading div:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading div:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* Error Message */
+.error-message {
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  color: #f8d7da;
+  padding: 1.5rem;
+  border-radius: 6px;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.error-message h3 {
+  color: #ff6b6b;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.error-message p {
+  margin-bottom: 1.5rem;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.retry-button {
+  background: #6a3de8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.retry-button:hover {
+  background: #7d52f5;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 3rem;
+  gap: 1rem;
+}
+
+.page-button {
+  background: #333;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.page-button:not(:disabled):hover {
+  background: #444;
+}
+
+.page-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #a7a7a7;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .filters-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-form,
+  .date-filter {
+    width: 100%;
+  }
+
+  .dreams-grid {
+    grid-template-columns: 1fr;
+  }
+}
