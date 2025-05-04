@@ -1,3 +1,3 @@
-mod dream_interpreter;
+pub mod dream_interpreter;
 
-pub use dream_interpreter::*;
+pub use dream_interpreter::DreamInterpreter;
