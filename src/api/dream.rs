@@ -13,12 +13,17 @@ use crate::models::dream::Dream;
 #[derive(Deserialize)]
 pub struct DreamRequest {
     pub dream_text: String,
+    #[serde(default)]
+    pub save: bool, // Optional parameter to save the dream, defaults to false for backward compatibility
 }
 
 #[derive(Serialize)]
 pub struct DreamResponse {
     pub interpretation: String,
     pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_uuid_option")]
+    pub id: Option<Uuid>, // Optional ID field present when dream is saved
 }
 
 #[derive(Deserialize)]
@@ -58,6 +63,17 @@ impl<T: Serialize> IntoResponse for ApiResponse<T> {
     }
 }
 
+// Helper function to serialize UUID Option as String Option
+fn serialize_uuid_option<S>(id: &Option<Uuid>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match id {
+        Some(uuid) => serializer.serialize_some(&uuid.to_string()),
+        None => serializer.serialize_none(),
+    }
+}
+
 // Handler for interpreting dreams through AI
 pub async fn interpret_dream_handler(
     State(state): State<AppState>,
@@ -70,13 +86,32 @@ pub async fn interpret_dream_handler(
         .request_dream_interpretation(&payload.dream_text)
         .await
     {
-        Ok(interpretation) => (
-            StatusCode::OK,
-            Json(DreamResponse {
-                interpretation,
-                status: "success".to_string(),
-            }),
-        ),
+        Ok(interpretation) => {
+            // If save is true, save the dream to the database
+            let dream_id = if payload.save {
+                match Dream::create(&state.db_pool, &payload.dream_text, &interpretation).await {
+                    Ok(id) => {
+                        println!("Dream saved with ID: {}", id);
+                        Some(id)
+                    }
+                    Err(e) => {
+                        eprintln!("Error saving dream: {:?}", e);
+                        None
+                    }
+                }
+            } else {
+                None
+            };
+
+            (
+                StatusCode::OK,
+                Json(DreamResponse {
+                    interpretation,
+                    status: "success".to_string(),
+                    id: dream_id,
+                }),
+            )
+        }
         Err(e) => {
             eprintln!("Error interpreting dream: {:?}", e);
             (
@@ -84,6 +119,7 @@ pub async fn interpret_dream_handler(
                 Json(DreamResponse {
                     interpretation: format!("Could not interpret dream: {:?}", e),
                     status: "error".to_string(),
+                    id: None,
                 }),
             )
         }
