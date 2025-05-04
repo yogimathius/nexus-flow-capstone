@@ -9,8 +9,13 @@ mod pages;
 // Top-Level pages
 use crate::pages::badge_demo::BadgeDemo;
 use crate::pages::button_demo::ButtonDemo;
+use crate::pages::dream_detail::DreamDetailPage;
 use crate::pages::dream_interpreter::DreamInterpreterPage;
+use crate::pages::dream_journal::DreamJournalPage;
 use crate::pages::home::Home;
+
+// Components
+use crate::components::dream::dream_interpreter::DreamInterpreter;
 
 // Layout components
 use crate::components::layout::Layout;
@@ -52,8 +57,8 @@ pub fn App() -> impl IntoView {
                         view=|| view! { <h1>"Symbol Library - Coming Soon"</h1> }
                     />
                     <Route path=path!("/interpret") view=DreamInterpreterPage />
-
-                    {}
+                    <Route path=path!("/journal") view=DreamJournalPage />
+                    <Route path=path!("/dream/:id") view=DreamDetailPage />
                     <Route path=path!("/buttons") view=ButtonDemo />
                     <Route path=path!("/badges") view=BadgeDemo />
                 </Routes>
