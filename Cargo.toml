@@ -41,8 +41,6 @@ gloo-timers = { version = "0.3.0", features = ["futures"] }
 gloo-net = "0.5.0"
 reqwest = { version = "0.11", features = ["json"] }
 chrono = "0.4.41"
-# Add fastrand with wasm-bindgen feature to fix the 'env' module resolution error
-fastrand = { version = "2.3", features = ["js"] }
 # CSS Modules
 # stylance = { version = "0.6.0", features = ["nightly"] }
 
