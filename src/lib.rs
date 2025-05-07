@@ -13,6 +13,7 @@ use crate::pages::dream_detail::DreamDetailPage;
 use crate::pages::dream_interpreter::DreamInterpreterPage;
 use crate::pages::dream_journal::DreamJournalPage;
 use crate::pages::home::Home;
+use crate::pages::journal_entry::JournalEntryPage;
 
 // Components
 use crate::components::dream::dream_interpreter::DreamInterpreter;
@@ -58,6 +59,7 @@ pub fn App() -> impl IntoView {
                     />
                     <Route path=path!("/interpret") view=DreamInterpreterPage />
                     <Route path=path!("/journal") view=DreamJournalPage />
+                    <Route path=path!("/journal/:entry") view=JournalEntryPage />
                     <Route path=path!("/dream/:id") view=DreamDetailPage />
                     <Route path=path!("/buttons") view=ButtonDemo />
                     <Route path=path!("/badges") view=BadgeDemo />
