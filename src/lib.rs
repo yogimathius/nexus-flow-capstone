@@ -15,9 +15,6 @@ use crate::pages::dream_journal::DreamJournalPage;
 use crate::pages::home::Home;
 use crate::pages::journal_entry::JournalEntryPage;
 
-// Components
-use crate::components::dream::dream_interpreter::DreamInterpreter;
-
 // Layout components
 use crate::components::layout::Layout;
 

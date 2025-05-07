@@ -11,13 +11,13 @@ pub fn Home() -> impl IntoView {
                     <div class="stack items-center text-center">
                         <h1 class="slide-up">"Dream Interpreter AI"</h1>
                         <p class="text-secondary mb-4 slide-up animation-delay-1">
-                            "Unlock the secrets of your subconscious mind with AI-powered dream analysis. Discover meaning behind your dreams and gain insights into your inner world."
-                        </p>
+                        "Unlock the secrets of your subconscious mind with AI-powered dream analysis. Discover meaning behind your dreams and gain insights into your inner world."
+                    </p>
                         <div class="slide-up animation-delay-2">
                             <div class="button">
                                 <A href="/interpret">
-                                    "Interpret Your Dream"
-                                </A>
+                        "Interpret Your Dream"
+                    </A>
                             </div>
                         </div>
                     </div>
@@ -31,30 +31,30 @@ pub fn Home() -> impl IntoView {
                             <div class="text-4xl mb-4 float animated-emoji">"🔮"</div>
                             <h3>"AI-Powered Analysis"</h3>
                             <p>
-                                "Our advanced AI model interprets dream symbols and patterns,
-                                providing personalized insights based on psychological research
-                                and cultural symbolism."
-                            </p>
-                        </div>
+                            "Our advanced AI model interprets dream symbols and patterns,
+                            providing personalized insights based on psychological research
+                            and cultural symbolism."
+                        </p>
+                    </div>
 
                         <div class="card slide-up animation-delay-1">
                             <div class="text-4xl mb-4 float animated-emoji">"📚"</div>
                             <h3>"Symbol Library"</h3>
                             <p>
-                                "Access our extensive library of dream symbols and their meanings,
-                                categorized and searchable to help you understand recurring themes
-                                in your dreams."
-                            </p>
-                        </div>
+                            "Access our extensive library of dream symbols and their meanings,
+                            categorized and searchable to help you understand recurring themes
+                            in your dreams."
+                        </p>
+                    </div>
 
                         <div class="card slide-up animation-delay-2">
                             <div class="text-4xl mb-4 float animated-emoji">"🔒"</div>
                             <h3>"Private & Secure"</h3>
                             <p>
-                                "Your dream data stays private with client-side processing.
-                                No dreams are stored or shared, ensuring your innermost thoughts
-                                remain confidential."
-                            </p>
+                            "Your dream data stays private with client-side processing.
+                            No dreams are stored or shared, ensuring your innermost thoughts
+                            remain confidential."
+                        </p>
                         </div>
                     </div>
                 </div>
@@ -73,37 +73,37 @@ pub fn Home() -> impl IntoView {
                     <div class="grid grid-3">
                         <div class="card slide-up">
                             <p class="mb-4">
-                                "This app helped me understand recurring dream patterns that were causing anxiety.
-                                The interpretations were surprisingly accurate and insightful!"
-                            </p>
+                            "This app helped me understand recurring dream patterns that were causing anxiety.
+                            The interpretations were surprisingly accurate and insightful!"
+                        </p>
                             <div class="flex items-center gap-4">
                                 <div class="badge person">"JD"</div>
                                 <div class="stack gap-2">
                                     <span class="font-bold">"Jamie D."</span>
                                     <span class="text-secondary">"Dream Enthusiast"</span>
-                                </div>
                             </div>
                         </div>
+                    </div>
 
                         <div class="card slide-up animation-delay-1">
                             <p class="mb-4">
-                                "I've been journaling my dreams for years, but this AI interpretation adds a
-                                new dimension to my understanding. Love the symbol library feature!"
-                            </p>
+                            "I've been journaling my dreams for years, but this AI interpretation adds a
+                            new dimension to my understanding. Love the symbol library feature!"
+                        </p>
                             <div class="flex items-center gap-4">
                                 <div class="badge dream">"SL"</div>
                                 <div class="stack gap-2">
                                     <span class="font-bold">"Sarah L."</span>
                                     <span class="text-secondary">"Sleep Researcher"</span>
-                                </div>
                             </div>
                         </div>
+                    </div>
 
                         <div class="card slide-up animation-delay-2">
                             <p class="mb-4">
-                                "The connections the AI makes between different symbols in my dreams
-                                have been eye-opening. It's like having a therapist in my pocket!"
-                            </p>
+                            "The connections the AI makes between different symbols in my dreams
+                            have been eye-opening. It's like having a therapist in my pocket!"
+                        </p>
                             <div class="flex items-center gap-4">
                                 <div class="badge emotion">"MT"</div>
                                 <div class="stack gap-2">
