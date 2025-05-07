@@ -6,11 +6,7 @@ use crate::components::{
 use leptos::prelude::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
-
-// Import CSS module
-const _: &str = include_str!("./dream_interpreter.module.css");
 
 // Dream interpretation tips
 const DREAM_TIPS: &[&str] = &[
@@ -288,113 +284,105 @@ pub fn DreamInterpreter() -> impl IntoView {
     }
 
     view! {
-        <div class="dream-interpreter">
-            <SectionTitle text="Dream Interpreter" />
-            <p class="intro-text">
-                "Enter your dream below and our AI will analyze the patterns and symbols to provide insights."
-            </p>
-
-            <form on:submit=handle_submit class="dream-form">
-                <label for="dream-text" class="form-label">"Describe your dream in detail:"</label>
-                <textarea
-                    id="dream-text"
-                    class="textarea"
-                    placeholder="I dreamt that I was flying over mountains and oceans..."
-                    prop:value=dream_text
-                    on:input=move |ev| {
-                        set_dream_text.set(event_target_value(&ev));
-                    }
-                    rows=4
-                ></textarea>
-
-                <div class="dream-badges">
-                    <span class="badge-label">"Common Dream Themes:"</span>
-                    <div class="badge-container">
-                        {COMMON_DREAM_THEMES
-                            .iter()
-                            .map(|&theme| {
-                                let theme_clone = theme.to_string();
-                                view! {
-                                    <Badge
-                                        on_click=Box::new(move || handle_badge_click(&theme_clone))
-                                        variant=BadgeVariant::Default
-                                        class="dream-badge".to_string()
-                                    >
-                                        {theme}
-                                    </Badge>
-                                }
-                            })
-                            .collect::<Vec<_>>()}
-                    </div>
-                    <p class="badge-helper-text">"Click on themes  to add descriptive sentences to your dream."</p>
-                </div>
-
-                <div class="save-option">
-                    <input
-                        type="checkbox"
-                        id="auto-save"
-                        checked=auto_save.get()
-                        on:change=move |ev| {
-                            if let Some(target) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok()) {
-                                set_auto_save.set(target.checked());
+        <div class="stack gap-6 fade-in">
+            <div class="card">
+                <form on:submit=handle_submit class="stack gap-6">
+                    <div class="stack gap-2">
+                        <label for="dream-text" class="label">"Describe your dream"</label>
+                        <textarea
+                            id="dream-text"
+                            class="textarea"
+                            placeholder="Enter your dream description..."
+                            prop:value=dream_text
+                            on:input=move |ev| {
+                                let value = event_target_value(&ev);
+                                set_dream_text.set(value);
                             }
-                        }
-                    />
-                    <label for="auto-save">"Automatically save this dream to your journal"</label>
-                </div>
+                        />
+                    </div>
 
-                {move || {
-                    error
-                        .get()
-                        .map(|err_msg| {
-                            view! { <div class="error-message">{err_msg}</div> }
-                        })
-                }}
+                    <div class="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            id="auto-save"
+                            checked=auto_save
+                            on:change=move |ev| {
+                                let checked = event_target_checked(&ev);
+                                set_auto_save.set(checked);
+                            }
+                        />
+                        <label for="auto-save" class="label m-0">"Save to dream journal"</label>
+                    </div>
 
-                <Button
-                    class="submit-btn".to_string()
-                    // disabled=button_disabled.get()
-                    variant=ButtonVariant::Primary
-                >
-                    {move || {
-                        if is_loading.get() { "Interpreting..." } else { "Interpret My Dream" }
-                    }}
-                </Button>
-            </form>
+                    <Button
+                        variant=ButtonVariant::Primary
+                        disabled=button_disabled.get()
+                        class="full-width".to_string()
+                    >
+                        {move || if is_loading.get() { "Interpreting..." } else { "Interpret Dream" }}
+                    </Button>
 
-            {move || {
-                interpretation
-                    .get()
-                    .map(|interp| {
+                    {move || error.get().map(|err| view! {
+                        <div class="text-error">{err}</div>
+                    })}
+                </form>
+            </div>
+
+            <div class="card">
+                <h3 class="card-header">"Common Dream Themes"</h3>
+                <p class="text-secondary mb-4">
+                    "Click on any theme to add a template to your dream description."
+                </p>
+                <div class="cluster">
+                    {COMMON_DREAM_THEMES.iter().map(|&theme| {
+                        let theme_str = theme.to_string();
+                        let variant = match theme {
+                            "Water" | "Fire" => BadgeVariant::Nature,
+                            "Flying" | "Falling" | "Being chased" | "Being trapped" =>
+                                BadgeVariant::Emotion,
+                            "Snakes" | "Animals" => BadgeVariant::Animal,
+                            "Teeth falling out" | "Money" | "Naked in public" | "Finding a new room" =>
+                                BadgeVariant::Object,
+                            "School or work" | "Celebrity" | "Childhood home" =>
+                                BadgeVariant::Person,
+                            _ => BadgeVariant::Dream
+                        };
                         view! {
-                            <div class="interpretation">
-                                <SubTitle text="Your Dream Interpretation" />
-                                <div class="interpretation-text" inner_html=interp></div>
-                                {move || {
-                                    saved_dream_id.get().map(|id| {
-                                        view! {
-                                            <div class="saved-message">
-                                                <div class="saved-icon">"OK"</div>
-                                                "Dream saved to your journal (ID: " {id.chars().take(8).collect::<String>()} ")"
-                                            </div>
-                                        }
-                                    })
-                                }}
-                            </div>
+                            <Badge
+                                variant=variant
+                                on_click=Box::new(move || handle_badge_click(&theme_str))
+                            >
+                                {theme}
+                            </Badge>
                         }
-                    })
-            }}
+                    }).collect_view()}
+                </div>
+            </div>
 
-            <div class="tips-section">
-                <h3 class="tips-title">"Tips for Better Dream Recall"</h3>
-                <ul class="tips-list">
-                    {DREAM_TIPS
-                        .iter()
-                        .take(4) // Only show 4 tips to save space
-                        .map(|&tip| {
-                            view! { <li class="tip-item">{tip}</li> }
-                        })
-                        .collect::<Vec<_>>()}
+            {move || interpretation.get().map(|text| view! {
+                <div class="card fade-in">
+                    <h3 class="card-header">"Dream Interpretation"</h3>
+                    <div class="prose" inner_html=text></div>
+                    {move || saved_dream_id.get().map(|id| view! {
+                        <div class="card-footer">
+                            <div class="flex items-center gap-2">
+                                <Badge variant=BadgeVariant::Dream>"Saved"</Badge>
+                                <span class="text-secondary">{"Dream saved to journal with ID: "}{id}</span>
+                            </div>
+                        </div>
+                    })}
+                </div>
+            })}
+
+            <div class="card">
+                <h3 class="card-header">"Dream Interpretation Tips"</h3>
+                <ul class="stack gap-2">
+                    {DREAM_TIPS.iter().map(|tip| view! {
+                        <li class="flex gap-2">
+                            <span class="text-primary">{"•"}</span>
+                            {tip.to_string()}
+                        </li>
+                    }).collect_view()}
                 </ul>
             </div>
         </div>
