@@ -30,8 +30,9 @@ inject_scripts = true
 [tools.wasm-bindgen]
 version = "0.2.100"
 wasm-opt = ["-O3"]
-# Important: This will ensure the wasm-bindgen environment is properly configured
-target = "web"
+# Ensure the wasm-bindgen environment is properly configured
+# Setting to "bundler" instead of "web" can help with module resolution issues
+target = "bundler"
 
 [watch]
 # Paths to watch. The `build.target`'s parent folder is watched by default.
