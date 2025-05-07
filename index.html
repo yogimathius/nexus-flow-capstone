@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,30 +17,16 @@
       rel="stylesheet"
     />
 
-    <!-- Global CSS -->
-    <link data-trunk rel="css" href="public/styles.css" />
-    <!-- Component CSS files -->
-    <link
-      data-trunk
-      rel="css"
-      href="src/components/dream/dream_interpreter.module.css"
-    />
-    <link
-      data-trunk
-      rel="css"
-      href="src/components/buttons/button.module.css"
-    />
-    <link data-trunk rel="css" href="src/components/badges/badge.module.css" />
-    <link data-trunk rel="css" href="src/components/layout/layout.module.css" />
-    <link data-trunk rel="css" href="src/pages/home.module.css" />
-    <link data-trunk rel="css" href="src/pages/button_demo.module.css" />
-    <link data-trunk rel="css" href="src/pages/badge_demo.module.css" />
-    <link data-trunk rel="css" href="src/pages/dream_interpreter.module.css" />
+    <!-- Unified CSS Architecture - Load in proper order -->
+    <link data-trunk rel="css" href="styles/variables.css" />
+    <link data-trunk rel="css" href="styles/base.css" />
+    <link data-trunk rel="css" href="styles/layout.css" />
+    <link data-trunk rel="css" href="styles/components.css" />
 
     <!-- Include favicon in dist output: see https://trunkrs.dev/assets/#icon -->
     <link data-trunk rel="icon" href="public/favicon.ico" />
 
-    <!-- include support for `wasm-bindgen --weak-refs` - see: https://rustwasm.github.io/docs/wasm-bindgen/reference/weak-references.html -->
+    <!-- include support for `wasm-bindgen --weak-refs` -->
     <link
       data-trunk
       rel="rust"

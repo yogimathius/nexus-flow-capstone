@@ -33,11 +33,9 @@ wasm-opt = ["-O3"]
 # Important: This will ensure the wasm-bindgen environment is properly configured
 target = "web"
 
-# No hooks section needed anymore
-
 [watch]
 # Paths to watch. The `build.target`'s parent folder is watched by default.
-watch = ["./src"]
+watch = ["./src", "./styles"]
 # Paths to ignore.
 ignore = []
 

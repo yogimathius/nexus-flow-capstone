@@ -1,0 +1,288 @@
+/* Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Document */
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Theme based on data-theme attribute */
+html[data-theme="light"] {
+  --background: #f9fafb; /* Gray 50 */
+  --background-rgb: 249, 250, 251;
+  --foreground: #111827; /* Gray 900 */
+  --foreground-rgb: 17, 24, 39;
+  --card: #ffffff;
+  --card-rgb: 255, 255, 255;
+  --border: #e5e7eb; /* Gray 200 */
+  --border-rgb: 229, 231, 235;
+  --text: #374151; /* Gray 700 */
+  --text-rgb: 55, 65, 81;
+  --text-secondary: #6b7280; /* Gray 500 */
+  --text-secondary-rgb: 107, 114, 128;
+
+  /* Enhanced Color Variants for Glass Effects */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-highlight: rgba(255, 255, 255, 0.3);
+  --glass-shadow: rgba(0, 0, 0, 0.05);
+
+  /* Enhanced Gradient Colors */
+  --gradient-start: #8b5cf6; /* Violet 500 */
+  --gradient-end: #6d28d9; /* Violet 700 */
+  --gradient-accent: #c4b5fd; /* Violet 300 */
+
+  /* Shadows for light mode */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-glow: 0 0 15px rgba(var(--primary-rgb), 0.5);
+
+  /* Modern Shadow Effects */
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.05);
+  --shadow-text: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-sharp: rgba(0, 0, 0, 0.1) 0px 4px 6px -1px,
+    rgba(0, 0, 0, 0.06) 0px 2px 4px -1px;
+  --shadow-float: rgba(0, 0, 0, 0.07) 0px 20px 30px -10px;
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+  --shadow-highlight: 0 0 0 2px rgba(var(--primary-rgb), 0.3);
+}
+
+html[data-theme="dark"] {
+  --background: #111827; /* Gray 900 */
+  --background-rgb: 17, 24, 39;
+  --foreground: #f9fafb; /* Gray 50 */
+  --foreground-rgb: 249, 250, 251;
+  --card: #1f2937; /* Gray 800 */
+  --card-rgb: 31, 41, 55;
+  --border: #374151; /* Gray 700 */
+  --border-rgb: 55, 65, 81;
+  --text: #e5e7eb; /* Gray 200 */
+  --text-rgb: 229, 231, 235;
+  --text-secondary: #9ca3af; /* Gray 400 */
+  --text-secondary-rgb: 156, 163, 175;
+
+  /* Enhanced Dark Theme Glass Effects */
+  --glass-bg: rgba(31, 41, 55, 0.8);
+  --glass-border: rgba(55, 65, 81, 0.5);
+  --glass-highlight: rgba(75, 85, 99, 0.3);
+  --glass-shadow: rgba(0, 0, 0, 0.2);
+
+  /* Enhanced Gradient Colors for Dark Mode */
+  --gradient-start: #6d28d9; /* Violet 700 */
+  --gradient-end: #4c1d95; /* Violet 900 */
+  --gradient-accent: #8b5cf6; /* Violet 500 */
+
+  /* Shadow adjustments for dark mode */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2),
+    0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3),
+    0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4),
+    0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 15px rgba(var(--primary-rgb), 0.3);
+
+  /* Modern Shadow Effects for Dark Theme */
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.15);
+  --shadow-text: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Set a default if no data-theme is present */
+html:not([data-theme]),
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+body {
+  background: var(--background);
+  color: var(--text);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Theme Transitions */
+.theme-transition,
+.button,
+.card,
+.nav-link,
+.header,
+.logo,
+.footer,
+.input,
+.textarea,
+.badge,
+.tag {
+  transition: background-color 0.3s ease, color 0.3s ease,
+    border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: var(--space-4);
+  color: var(--foreground);
+}
+
+h1 {
+  font-size: 2.5rem;
+}
+h2 {
+  font-size: 2rem;
+}
+h3 {
+  font-size: 1.75rem;
+}
+h4 {
+  font-size: 1.5rem;
+}
+h5 {
+  font-size: 1.25rem;
+}
+h6 {
+  font-size: 1rem;
+}
+
+p {
+  margin-bottom: var(--space-4);
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--primary-light);
+  text-decoration: underline;
+}
+
+/* Links within buttons should not have underlines */
+.button a,
+.button-outline a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.button a:hover,
+.button-outline a:hover {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Media */
+img,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Lists */
+ul,
+ol {
+  padding-left: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+/* Code */
+code,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--card);
+  border-radius: var(--border-radius);
+}
+
+code {
+  padding: 0.2em 0.4em;
+}
+
+pre {
+  padding: var(--space-4);
+  overflow-x: auto;
+  margin-bottom: var(--space-4);
+}
+
+/* Prose Styles */
+.prose {
+  max-width: 65ch;
+  line-height: 1.75;
+}
+
+.prose > * + * {
+  margin-top: var(--space-4);
+}
+
+.prose h2,
+.prose h3,
+.prose h4 {
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-4);
+}
+
+.prose ul,
+.prose ol {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding-left: var(--space-6);
+}
+
+.prose li {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.prose blockquote {
+  border-left: 4px solid var(--border);
+  padding-left: var(--space-4);
+  margin-left: 0;
+  margin-right: 0;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.prose-invert {
+  color: var(--text);
+}
+
+.prose-invert a {
+  color: var(--primary-light);
+}
+
+.prose-invert a:hover {
+  color: var(--primary);
+}
+
+.prose-invert blockquote {
+  border-left-color: var(--border);
+  color: var(--text-secondary);
+}
