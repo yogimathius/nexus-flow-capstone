@@ -84,10 +84,18 @@ pub fn DreamInterpreter() -> impl IntoView {
     // API endpoint
     let api_url = "http://localhost:3003/api/interpret_dream";
 
-    // Update the disabled state whenever the dream text changes
+    // Watch for dream text changes to update button disabled state
     Effect::new(move |_| {
-        let is_empty = dream_text.get().trim().is_empty();
-        set_button_disabled.set(is_empty || is_loading.get());
+        let text = dream_text.get();
+        let loading = is_loading.get();
+
+        // Log the current state for debugging
+        log::info!("Dream text: '{}', is_loading: {}", text, loading);
+
+        let should_be_disabled = text.trim().is_empty() || loading;
+        log::info!("Button should be disabled: {}", should_be_disabled);
+
+        set_button_disabled.set(should_be_disabled);
     });
 
     // Handle badge click
@@ -169,8 +177,11 @@ pub fn DreamInterpreter() -> impl IntoView {
         // Set the new text directly
         set_dream_text.set(new_text);
 
-        // Enable the button
+        // Force the button to enable when badge is clicked
         set_button_disabled.set(false);
+
+        // Log that a badge was clicked
+        log::info!("Badge '{}' clicked, text updated", theme);
     };
 
     // Handle form submission
@@ -192,6 +203,7 @@ pub fn DreamInterpreter() -> impl IntoView {
 
         // Set loading state to true
         set_is_loading.set(true);
+        log::info!("Submitting dream interpretation request, loading state set to true");
 
         // Create the request payload with save parameter
         let request_payload = DreamRequest {
@@ -223,34 +235,43 @@ pub fn DreamInterpreter() -> impl IntoView {
                                 if let Some(id) = data.id {
                                     set_saved_dream_id.set(Some(id));
                                 }
+
+                                log::info!("Received successful interpretation response");
                             }
                             Err(e) => {
                                 set_error.set(Some(format!("Failed to parse response: {}", e)));
+                                log::error!("Failed to parse response: {}", e);
                             }
                         }
                     } else {
                         let status = response.status();
                         match response.text().await {
                             Ok(text) => {
-                                set_error.set(Some(format!("Server error ({}): {}", status, text)));
+                                let error_msg = format!("Server error ({}): {}", status, text);
+                                set_error.set(Some(error_msg.clone()));
+                                log::error!("{}", error_msg);
                             }
                             Err(_) => {
-                                set_error
-                                    .set(Some(format!("Server error: Status code {}", status)));
+                                let error_msg = format!("Server error: Status code {}", status);
+                                set_error.set(Some(error_msg.clone()));
+                                log::error!("{}", error_msg);
                             }
                         }
                     }
                 }
                 Err(e) => {
-                    set_error.set(Some(format!(
+                    let error_msg = format!(
                         "Failed to connect to the interpretation service. Please try again later. Error: {}",
                         e
-                    )));
+                    );
+                    set_error.set(Some(error_msg.clone()));
+                    log::error!("{}", error_msg);
                 }
             }
 
             // Set loading state back to false
             set_is_loading.set(false);
+            log::info!("Request completed, loading state set to false");
         });
     };
 
@@ -296,7 +317,15 @@ pub fn DreamInterpreter() -> impl IntoView {
                             prop:value=dream_text
                             on:input=move |ev| {
                                 let value = event_target_value(&ev);
+
+                                // Directly update button state on input
+                                let should_disable = value.trim().is_empty() || is_loading.get();
+                                set_button_disabled.set(should_disable);
+
+                                // Set the dream text after checking the value
                                 set_dream_text.set(value);
+
+                                log::info!("Textarea input updated, button disabled: {}", should_disable);
                             }
                         />
                     </div>
@@ -316,7 +345,7 @@ pub fn DreamInterpreter() -> impl IntoView {
 
                     <Button
                         variant=ButtonVariant::Primary
-                        disabled=button_disabled.get()
+                        // disabled=button_disabled.get()
                         class="full-width".to_string()
                     >
                         {move || if is_loading.get() { "Interpreting..." } else { "Interpret Dream" }}
