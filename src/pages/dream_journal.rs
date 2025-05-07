@@ -1,5 +1,4 @@
 use crate::components::markdown::render_markdown;
-use crate::components::typography::SectionTitle;
 use gloo_net::http::Request;
 use leptos::prelude::*;
 use reqwest::Client;
@@ -28,23 +27,23 @@ struct Pagination {
 pub fn DreamJournalPage() -> impl IntoView {
     // ----- State -----
     // Dreams list
-    let (dreams, set_dreams) = create_signal(Vec::<Dream>::new());
+    let (dreams, set_dreams) = signal(Vec::<Dream>::new());
     // Loading state
-    let (is_loading, set_is_loading) = create_signal(false);
+    let (is_loading, set_is_loading) = signal(false);
     // Error state
-    let (error, set_error) = create_signal(Option::<String>::None);
+    let (error, set_error) = signal(Option::<String>::None);
     // Pagination state
-    let (pagination, set_pagination) = create_signal(Pagination {
+    let (pagination, set_pagination) = signal(Pagination {
         current_page: 1,
         total_pages: 1,
         items_per_page: 10,
     });
     // Search query
-    let (search_query, set_search_query) = create_signal(String::new());
+    let (search_query, set_search_query) = signal(String::new());
     // Date filter
-    let (date_filter, set_date_filter) = create_signal(String::new());
+    let (date_filter, set_date_filter) = signal(String::new());
     // Trigger for refreshing dreams
-    let (refresh_trigger, set_refresh_trigger) = create_signal(0);
+    let (refresh_trigger, set_refresh_trigger) = signal(0);
 
     // ----- API endpoint -----
     // Try localhost first, fallback to IP
@@ -59,7 +58,7 @@ pub fn DreamJournalPage() -> impl IntoView {
     };
 
     // Create a memo to track dependencies for fetching
-    let deps = create_memo(move |_| {
+    let deps = Memo::new(move |_| {
         (
             refresh_trigger.get(),
             pagination.get(),
@@ -69,7 +68,7 @@ pub fn DreamJournalPage() -> impl IntoView {
     });
 
     // Create an effect to handle fetching
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let (_, pagination, search_query, date_filter) = deps.get();
         set_is_loading.set(true);
         set_error.set(None);

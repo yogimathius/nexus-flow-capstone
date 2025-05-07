@@ -32,7 +32,7 @@ pub fn Header() -> impl IntoView {
     set_is_dark_mode.set(init_theme());
 
     // Apply initial theme
-    let _ = create_effect(move |_| {
+    let _ = Effect::new(move |_| {
         apply_theme(is_dark_mode.get());
     });
 
