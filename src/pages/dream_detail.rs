@@ -1,12 +1,10 @@
+use crate::components::markdown::{DreamText, InterpretationText};
 use crate::components::typography::{SectionTitle, SubTitle};
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_futures::spawn_local;
-
-// Import CSS module
-const _: &str = include_str!("./dream_detail.module.css");
 
 // Dream model from API (same as in dream_journal.rs)
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -82,31 +80,6 @@ pub fn DreamDetailPage() -> impl IntoView {
         }
     };
 
-    // Format interpretation for HTML display
-    let format_interpretation = |text: &str| -> String {
-        // Similar to the formatting in dream_interpreter.rs
-        let text = if let Some(start_idx) = text.find("<think>") {
-            if let Some(end_idx) = text.find("</think>") {
-                let before = &text[0..start_idx];
-                let after = &text[(end_idx + 8)..];
-                format!("{}{}", before, after)
-            } else {
-                text.to_string()
-            }
-        } else {
-            text.to_string()
-        };
-
-        let text = text
-            .replace("###", "<h3 class=\"interp-heading\">")
-            .replace("####", "<h4 class=\"interp-subheading\">")
-            .replace("\n\n", "<br/><br/>")
-            .replace("\n---\n", "<hr class=\"interp-divider\"/>");
-
-        let text = text.replace("**", "<strong>").replace("*", "<em>");
-        text.replace("\n", "<br/>")
-    };
-
     // Load dream on component mount using the ID from the route
     let _ = Effect::new(move |_| {
         let id = dream_id();
@@ -116,8 +89,8 @@ pub fn DreamDetailPage() -> impl IntoView {
     });
 
     view! {
-        <div class="dream-detail">
-            <div class="dream-content">
+        <div class="container container-md py-8">
+            <div class="stack gap-8">
                 <Show
                     when=move || is_loading.get()
                     fallback=move || {
@@ -130,11 +103,9 @@ pub fn DreamDetailPage() -> impl IntoView {
                                             when=move || dream.get().is_some()
                                             fallback=move || {
                                                 view! {
-                                                    <div class="error-wrapper">
-                                                        <div class="error-container">
-                                                            <p class="error-message">"Something went wrong. Please try again."</p>
-                                                            <a href="/journal" class="back-link">"Back to Dream Journal"</a>
-                                                        </div>
+                                                    <div class="card bg-card p-6">
+                                                        <p class="text-error mb-4">"Something went wrong. Please try again."</p>
+                                                        <a href="/journal" class="button button-outline">"Back to Dream Journal"</a>
                                                     </div>
                                                 }
                                             }
@@ -142,25 +113,42 @@ pub fn DreamDetailPage() -> impl IntoView {
                                             {move || {
                                                 let dream_data = dream.get().unwrap();
                                                 let date = format_date(&dream_data.created_at);
-                                                let interpretation_html = format_interpretation(&dream_data.interpretation);
 
                                                 view! {
-                                                    <div class="dream-details">
-                                                        <div class="dream-header">
-                                                            <a href="/journal" class="back-link">"← Back to Journal"</a>
-                                                            <div class="dream-date">{date}</div>
+                                                    <div class="stack gap-6">
+                                                        <div class="flex items-center justify-between">
+                                                            <a href="/journal" class="flex items-center gap-2 text-secondary hover:text-primary">
+                                                                <svg
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    width="24"
+                                                                    height="24"
+                                                                    viewBox="0 0 24 24"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    stroke-width="2"
+                                                                    stroke-linecap="round"
+                                                                    stroke-linejoin="round"
+                                                                >
+                                                                    <path d="M19 12H5"></path>
+                                                                    <path d="M12 19l-7-7 7-7"></path>
+                                                                </svg>
+                                                                "Back to Journal"
+                                                            </a>
+                                                            <div class="text-secondary">{date}</div>
                                                         </div>
 
-                                                        <SectionTitle text="Dream" />
-                                                        <div class="dream-text">
-                                                            {dream_data.text}
+                                                        <div class="card bg-card p-6">
+                                                            <SectionTitle text="Dream" />
+                                                            <DreamText content={dream_data.text.clone()} />
                                                         </div>
 
-                                                        <SubTitle text="Interpretation" />
-                                                        <div class="interpretation-text" inner_html=interpretation_html></div>
+                                                        <div class="card bg-card p-6">
+                                                            <SubTitle text="Interpretation" />
+                                                            <InterpretationText content={dream_data.interpretation.clone()} />
+                                                        </div>
 
-                                                        <div class="actions">
-                                                            <a href="/interpret" class="action-button">
+                                                        <div class="flex justify-center">
+                                                            <a href="/interpret" class="button">
                                                                 "Interpret Another Dream"
                                                             </a>
                                                         </div>
@@ -174,12 +162,10 @@ pub fn DreamDetailPage() -> impl IntoView {
                                 {move || {
                                     let err = error.get().unwrap();
                                     view! {
-                                        <div class="error-wrapper">
-                                            <div class="error-container">
-                                                <h2 class="error-title">"Error"</h2>
-                                                <p class="error-message">{err}</p>
-                                                <a href="/journal" class="back-link">"Back to Dream Journal"</a>
-                                            </div>
+                                        <div class="card bg-card p-6">
+                                            <h2 class="text-4xl mb-4 text-error">"Error"</h2>
+                                            <p class="text-error mb-4">{err}</p>
+                                            <a href="/journal" class="button button-outline">"Back to Dream Journal"</a>
                                         </div>
                                     }
                                 }}
@@ -187,12 +173,8 @@ pub fn DreamDetailPage() -> impl IntoView {
                         }
                     }
                 >
-                    <div class="loading-container">
-                        <div class="loading">
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                        </div>
+                    <div class="flex justify-center items-center min-h-[200px]">
+                        <div class="loading"></div>
                     </div>
                 </Show>
             </div>
