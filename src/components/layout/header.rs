@@ -1,6 +1,7 @@
 use js_sys;
 use leptos::prelude::*;
 use std::time::Duration;
+use wasm_bindgen::prelude::*;
 use web_sys::window;
 
 #[component]
@@ -31,7 +32,7 @@ pub fn Header() -> impl IntoView {
     set_is_dark_mode.set(init_theme());
 
     // Apply initial theme
-    let _ = Effect::new(move |_| {
+    let _ = create_effect(move |_| {
         apply_theme(is_dark_mode.get());
     });
 
@@ -63,12 +64,9 @@ pub fn Header() -> impl IntoView {
         <header class="header">
             <div class="container">
                 <div class="header-content">
-                    <nav class="nav-left">
+                    <div class="nav">
                         <a href="/" class="nav-link">
                             "Home"
-                        </a>
-                        <a href="/symbols" class="nav-link">
-                            "Symbols"
                         </a>
                         <a href="/interpret" class="nav-link">
                             "Interpret"
@@ -76,14 +74,14 @@ pub fn Header() -> impl IntoView {
                         <a href="/journal" class="nav-link">
                             "Journal"
                         </a>
-                    </nav>
+                    </div>
 
-                    <a href="/" class="logo center-logo">
+                    <a href="/" class="logo logo-centered">
                         <span class="animated-emoji">{current_emoji}</span>
                         " Dream Interpreter AI"
                     </a>
 
-                    <div class="nav-right">
+                    <div class="flex items-center">
                         <button
                             on:click=toggle_dark_mode
                             class="theme-toggle"
@@ -122,8 +120,26 @@ fn apply_theme(is_dark: bool) {
     if let Some(window) = window() {
         if let Some(document) = window.document() {
             if let Some(html) = document.document_element() {
+                // Add transition class
+                let _ = html.class_list().add_1("theme-transition");
+
+                // Apply theme after a brief delay
                 let theme = if is_dark { "dark" } else { "light" };
                 let _ = html.set_attribute("data-theme", theme);
+
+                // Set a timeout to remove the transition class
+                let html_clone = html.clone();
+                let timeout_closure = Closure::wrap(Box::new(move || {
+                    let _ = html_clone.class_list().remove_1("theme-transition");
+                }) as Box<dyn FnMut()>);
+
+                let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                    timeout_closure.as_ref().unchecked_ref(),
+                    1000, // 1 second
+                );
+
+                // Forget the closure to prevent memory leaks
+                timeout_closure.forget();
             }
         }
     }
