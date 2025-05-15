@@ -178,7 +178,7 @@ impl McpClient {
 
         // First, try connecting to a local MCP server (the symbol-ontology service)
         let url = std::env::var("MCP_SERVER_URL")
-            .unwrap_or_else(|_| "http://127.0.0.1:3002/sse".to_string());
+            .unwrap_or_else(|_| "http://localhost:3002/sse".to_string());
 
         info!("Attempting to connect to external MCP server at {}", url);
 
