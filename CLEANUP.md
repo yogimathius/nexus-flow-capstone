@@ -14,13 +14,14 @@ This document outlines potential improvements and cleanup opportunities for the 
   - `src/api/dream.rs`
 - **Status**: Completed - Created unified AppError type and converted MCP client and AI client to use it
 
-### 2. Logging Standardization
+### 2. ✅ Logging Standardization
 
 - **Issue**: Mix of `println!`, `eprintln!`, and `tracing` macros throughout the codebase
 - **Solution**: Consistently use the `tracing` library for all logging with appropriate log levels
 - **Files Affected**:
   - `src/api/dream.rs` (uses println/eprintln)
   - `src/services/ai_client.rs` (uses println)
+- **Status**: Completed - Replaced all println/eprintln with appropriate tracing macros
 
 ### 3. Duplicate CORS Configuration
 

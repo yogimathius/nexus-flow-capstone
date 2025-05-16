@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use std::sync::Arc;
 use std::time::Duration;
+use tracing::{debug, error, info, warn};
 
 // Request/response types
 #[derive(Serialize)]
@@ -97,7 +98,7 @@ impl AiClient {
     }
 
     pub async fn request_dream_interpretation(&self, dream_text: &str) -> AppResult<String> {
-        println!(
+        info!(
             "Preparing dream interpretation request for: {:?}",
             dream_text
         );
@@ -113,7 +114,7 @@ impl AiClient {
             {
                 Ok(meanings) => Some(meanings),
                 Err(e) => {
-                    println!("Failed to look up symbols: {:?}", e);
+                    error!("Failed to look up symbols: {:?}", e);
                     None
                 }
             }
@@ -154,7 +155,7 @@ impl AiClient {
             match self.request_github_interpretation(&prompt, token).await {
                 Ok(interpretation) => return Ok(interpretation),
                 Err(e) => {
-                    println!("GitHub API error: {:?}, falling back to OpenRouter", e);
+                    error!("GitHub API error: {:?}, falling back to OpenRouter", e);
                     // Fall back to OpenRouter
                 }
             }
@@ -164,7 +165,7 @@ impl AiClient {
         match self.request_openrouter_interpretation(&prompt).await {
             Ok(interpretation) => Ok(interpretation),
             Err(e) => {
-                println!("OpenRouter API error: {:?}", e);
+                error!("OpenRouter API error: {:?}", e);
                 Err(AppError::ExternalServiceError(format!(
                     "Failed to get interpretation from any API provider: {}",
                     e
@@ -196,7 +197,7 @@ impl AiClient {
         prompt: &str,
         github_token: &str,
     ) -> AppResult<String> {
-        println!("Using GitHub API for interpretation");
+        info!("Using GitHub API for interpretation");
 
         let request_body = GithubCompletionRequest {
             messages: vec![Message {
@@ -222,7 +223,7 @@ impl AiClient {
             .map_err(|e| AppError::HttpError(e))?;
 
         let status = response.status();
-        println!("GitHub API response status: {}", status);
+        info!("GitHub API response status: {}", status);
 
         // Check for rate limiting
         if status.as_u16() == 429 {
@@ -232,7 +233,7 @@ impl AiClient {
         // Check for other errors
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            println!("GitHub API error response: {}", error_text);
+            error!("GitHub API error response: {}", error_text);
 
             return Err(AppError::ExternalServiceError(format!(
                 "GitHub API returned error status: {} - {}",
@@ -258,7 +259,7 @@ impl AiClient {
     }
 
     async fn request_openrouter_interpretation(&self, prompt: &str) -> AppResult<String> {
-        println!("Sending request to OpenRouter API with DeepSeek model...");
+        info!("Sending request to OpenRouter API with DeepSeek model...");
 
         let model = "openai/gpt-4.1";
 
@@ -270,7 +271,7 @@ impl AiClient {
             }],
         };
 
-        println!("Using model: {}", request_body.model);
+        info!("Using model: {}", request_body.model);
 
         let response = self
             .client
@@ -285,7 +286,7 @@ impl AiClient {
             .send()
             .await?;
 
-        println!(
+        info!(
             "Received response from OpenRouter with status: {}",
             response.status()
         );
@@ -297,7 +298,7 @@ impl AiClient {
             Some(choice) => {
                 let content = choice.message.content.clone();
                 if content.is_empty() {
-                    println!("Warning: Received empty content from OpenRouter API");
+                    warn!("Warning: Received empty content from OpenRouter API");
                     return Ok("The AI model couldn't interpret your dream at this time. Please try again later.".to_string());
                 }
                 Ok(content)

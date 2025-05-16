@@ -4,6 +4,7 @@ use axum::{
     response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
+use tracing::{debug, error, info};
 use uuid::Uuid;
 
 use crate::AppState;
@@ -79,7 +80,7 @@ pub async fn interpret_dream_handler(
     State(state): State<AppState>,
     Json(payload): Json<DreamRequest>,
 ) -> impl IntoResponse {
-    println!("Interpreting dream: {}", payload.dream_text);
+    info!("Interpreting dream: {}", payload.dream_text);
 
     match state
         .ai_client
@@ -91,11 +92,11 @@ pub async fn interpret_dream_handler(
             let dream_id = if payload.save {
                 match Dream::create(&state.db_pool, &payload.dream_text, &interpretation).await {
                     Ok(id) => {
-                        println!("Dream saved with ID: {}", id);
+                        info!("Dream saved with ID: {}", id);
                         Some(id)
                     }
                     Err(e) => {
-                        eprintln!("Error saving dream: {:?}", e);
+                        error!("Error saving dream: {:?}", e);
                         None
                     }
                 }
@@ -113,7 +114,7 @@ pub async fn interpret_dream_handler(
             )
         }
         Err(e) => {
-            eprintln!("Error interpreting dream: {:?}", e);
+            error!("Error interpreting dream: {:?}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(DreamResponse {
@@ -137,7 +138,7 @@ pub async fn create_dream_handler(
             status: "success".to_string(),
         }),
         Err(e) => {
-            eprintln!("Error creating dream: {:?}", e);
+            error!("Error creating dream: {:?}", e);
             ApiResponse::Error(ErrorResponse {
                 status: "error".to_string(),
                 message: format!("Failed to save dream: {:?}", e),
@@ -151,7 +152,7 @@ pub async fn list_dreams_handler(State(state): State<AppState>) -> impl IntoResp
     match Dream::list(&state.db_pool).await {
         Ok(dreams) => ApiResponse::Success(dreams),
         Err(e) => {
-            eprintln!("Error listing dreams: {:?}", e);
+            error!("Error listing dreams: {:?}", e);
             ApiResponse::Error(ErrorResponse {
                 status: "error".to_string(),
                 message: format!("Failed to list dreams: {:?}", e),
@@ -172,7 +173,7 @@ pub async fn get_dream_handler(
             message: format!("Dream with id {} not found", id),
         }),
         Err(e) => {
-            eprintln!("Error getting dream: {:?}", e);
+            error!("Error getting dream: {:?}", e);
             ApiResponse::Error(ErrorResponse {
                 status: "error".to_string(),
                 message: format!("Failed to get dream: {:?}", e),
