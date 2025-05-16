@@ -5,6 +5,8 @@ use std::error::Error;
 use tokio::process::Command;
 use tracing::{debug, error, info};
 
+use crate::error::{AppError, AppResult};
+
 /// A trait defining the interface for MCP clients
 /// This allows for easy mocking in tests
 pub trait McpClientTrait: Send + Sync {
@@ -15,37 +17,20 @@ pub trait McpClientTrait: Send + Sync {
         &'a self,
         text: &'a str,
         operation: TextOperation,
-    ) -> std::pin::Pin<
-        Box<
-            dyn std::future::Future<Output = Result<String, Box<dyn Error + Send + Sync>>>
-                + Send
-                + 'a,
-        >,
-    >;
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = AppResult<String>> + Send + 'a>>;
 
     /// Look up symbol meanings
     fn lookup_symbols<'a>(
         &'a self,
         symbols: Vec<&'a str>,
     ) -> std::pin::Pin<
-        Box<
-            dyn std::future::Future<
-                    Output = Result<Vec<SymbolMeaning>, Box<dyn Error + Send + Sync>>,
-                > + Send
-                + 'a,
-        >,
+        Box<dyn std::future::Future<Output = AppResult<Vec<SymbolMeaning>>> + Send + 'a>,
     >;
 
     /// List available tools from the MCP server
     fn list_tools<'a>(
         &'a self,
-    ) -> std::pin::Pin<
-        Box<
-            dyn std::future::Future<Output = Result<Vec<String>, Box<dyn Error + Send + Sync>>>
-                + Send
-                + 'a,
-        >,
-    >;
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = AppResult<Vec<String>>> + Send + 'a>>;
 }
 
 // Implement Clone for Box<dyn McpClientTrait>
@@ -71,13 +56,7 @@ impl McpClientTrait for McpClient {
         &'a self,
         text: &'a str,
         operation: TextOperation,
-    ) -> std::pin::Pin<
-        Box<
-            dyn std::future::Future<Output = Result<String, Box<dyn Error + Send + Sync>>>
-                + Send
-                + 'a,
-        >,
-    > {
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = AppResult<String>> + Send + 'a>> {
         Box::pin(self.process_text_impl(text, operation))
     }
 
@@ -85,91 +64,41 @@ impl McpClientTrait for McpClient {
         &'a self,
         symbols: Vec<&'a str>,
     ) -> std::pin::Pin<
-        Box<
-            dyn std::future::Future<
-                    Output = Result<Vec<SymbolMeaning>, Box<dyn Error + Send + Sync>>,
-                > + Send
-                + 'a,
-        >,
+        Box<dyn std::future::Future<Output = AppResult<Vec<SymbolMeaning>>> + Send + 'a>,
     > {
         Box::pin(self.lookup_symbols_impl(symbols))
     }
 
     fn list_tools<'a>(
         &'a self,
-    ) -> std::pin::Pin<
-        Box<
-            dyn std::future::Future<Output = Result<Vec<String>, Box<dyn Error + Send + Sync>>>
-                + Send
-                + 'a,
-        >,
-    > {
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = AppResult<Vec<String>>> + Send + 'a>>
+    {
         Box::pin(self.list_tools_impl())
     }
 }
 
 impl McpClient {
-    pub async fn new() -> Result<Self, Box<dyn Error + Send + Sync>> {
+    pub async fn new() -> AppResult<Self> {
         info!("Initializing MCP client...");
 
-        // Try to connect to an external MCP server first
-        if let Ok(client) = Self::try_connect_to_external_server().await {
-            info!("Successfully connected to external MCP server");
-            return Ok(Self { client });
-        }
-
-        info!("No external MCP server found, starting built-in server...");
-
-        // Initialize the MCP client with the server-everything implementation
-        let mut command = Command::new("npx");
-        command
-            .arg("-y")
-            .arg("@modelcontextprotocol/server-everything");
-
-        debug!("Starting MCP server with command: {:?}", command);
-
-        let transport = match TokioChildProcess::new(&mut command) {
-            Ok(process) => process,
-            Err(e) => {
-                error!("Failed to start MCP server process: {:?}", e);
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("Failed to start MCP server process: {}", e),
-                )));
-            }
-        };
-
-        // Create client info
-        use rmcp::model::{ClientCapabilities, ClientInfo, Implementation};
-        let client_info = ClientInfo {
-            protocol_version: Default::default(),
-            capabilities: ClientCapabilities::default(),
-            client_info: Implementation {
-                name: "Dream Interpreter MCP Client".to_string(),
-                version: "0.1.0".to_string(),
-            },
-        };
-
-        let client = match client_info.serve(transport).await {
+        // Try to connect to an external MCP server
+        match Self::try_connect_to_external_server().await {
             Ok(client) => {
-                info!("MCP client successfully initialized with built-in server");
-                client
+                info!("Successfully connected to external MCP server");
+                Ok(Self { client })
             }
             Err(e) => {
-                error!("Failed to initialize MCP client: {:?}", e);
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("Failed to initialize MCP client: {}", e),
-                )));
+                info!("Could not connect to external MCP server: {}", e);
+                Err(AppError::McpError(format!(
+                    "MCP server connection failed: {}",
+                    e
+                )))
             }
-        };
-
-        Ok(Self { client })
+        }
     }
 
-    async fn try_connect_to_external_server() -> Result<
+    async fn try_connect_to_external_server() -> AppResult<
         rmcp::service::RunningService<rmcp::RoleClient, rmcp::model::InitializeRequestParam>,
-        Box<dyn Error + Send + Sync>,
     > {
         use rmcp::{
             model::{ClientCapabilities, ClientInfo, Implementation},
@@ -207,11 +136,10 @@ impl McpClient {
                             "Failed to initialize MCP client with external server: {:?}",
                             e
                         );
-                        Err(format!(
+                        Err(AppError::McpError(format!(
                             "Failed to initialize MCP client with external server: {}",
                             e
-                        )
-                        .into())
+                        )))
                     }
                 }
             }
@@ -220,17 +148,16 @@ impl McpClient {
                     "Could not connect to external MCP server at {}: {:?}",
                     url, e
                 );
-                Err(format!("Could not connect to external MCP server: {}", e).into())
+                Err(AppError::McpError(format!(
+                    "Could not connect to external MCP server: {}",
+                    e
+                )))
             }
         }
     }
 
     // Private implementation methods used by the trait methods
-    async fn process_text_impl(
-        &self,
-        text: &str,
-        operation: TextOperation,
-    ) -> Result<String, Box<dyn Error + Send + Sync>> {
+    async fn process_text_impl(&self, text: &str, operation: TextOperation) -> AppResult<String> {
         info!("Processing text with operation: {:?}", operation);
 
         // First attempt to use MCP if available
@@ -247,11 +174,7 @@ impl McpClient {
         }
     }
 
-    async fn try_mcp_processing(
-        &self,
-        text: &str,
-        operation: &TextOperation,
-    ) -> Result<String, Box<dyn Error + Send + Sync>> {
+    async fn try_mcp_processing(&self, text: &str, operation: &TextOperation) -> AppResult<String> {
         // Try to use MCP for processing
         let op_name = match operation {
             TextOperation::Count => "text_count",
@@ -286,16 +209,15 @@ impl McpClient {
             }
             Err(e) => {
                 debug!("MCP tool unavailable: {:?}", e);
-                Err(format!("MCP tool '{}' not available", op_name).into())
+                Err(AppError::McpError(format!(
+                    "MCP tool '{}' not available",
+                    op_name
+                )))
             }
         }
     }
 
-    fn process_locally(
-        &self,
-        text: &str,
-        operation: TextOperation,
-    ) -> Result<String, Box<dyn Error + Send + Sync>> {
+    fn process_locally(&self, text: &str, operation: TextOperation) -> AppResult<String> {
         info!("Processing text locally with operation: {:?}", operation);
 
         match operation {
@@ -401,10 +323,7 @@ impl McpClient {
         }
     }
 
-    async fn lookup_symbols_impl(
-        &self,
-        symbols: Vec<&str>,
-    ) -> Result<Vec<SymbolMeaning>, Box<dyn Error + Send + Sync>> {
+    async fn lookup_symbols_impl(&self, symbols: Vec<&str>) -> AppResult<Vec<SymbolMeaning>> {
         info!("Looking up {} symbols from ontology", symbols.len());
 
         // First attempt to use MCP if available
@@ -424,10 +343,7 @@ impl McpClient {
         }
     }
 
-    async fn try_mcp_symbol_lookup(
-        &self,
-        symbols: &[&str],
-    ) -> Result<Vec<SymbolMeaning>, Box<dyn Error + Send + Sync>> {
+    async fn try_mcp_symbol_lookup(&self, symbols: &[&str]) -> AppResult<Vec<SymbolMeaning>> {
         debug!("Attempting to look up symbols via MCP: {:?}", symbols);
 
         if symbols.is_empty() {
@@ -568,19 +484,21 @@ impl McpClient {
             }
             Ok(Err(e)) => {
                 debug!("MCP get_symbols tool error: {:?}", e);
-                Err(format!("MCP symbol lookup tool error: {}", e).into())
+                Err(AppError::McpError(format!(
+                    "MCP symbol lookup tool error: {}",
+                    e
+                )))
             }
             Err(_) => {
                 debug!("MCP get_symbols tool timed out");
-                Err("MCP symbol lookup timed out".into())
+                Err(AppError::McpError(
+                    "MCP symbol lookup timed out".to_string(),
+                ))
             }
         }
     }
 
-    fn lookup_symbols_locally(
-        &self,
-        symbols: Vec<&str>,
-    ) -> Result<Vec<SymbolMeaning>, Box<dyn Error + Send + Sync>> {
+    fn lookup_symbols_locally(&self, symbols: Vec<&str>) -> AppResult<Vec<SymbolMeaning>> {
         info!("Looking up symbols in local ontology database");
 
         // Implement a basic local lookup for common symbols
@@ -627,7 +545,7 @@ impl McpClient {
         Ok(results)
     }
 
-    async fn list_tools_impl(&self) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
+    async fn list_tools_impl(&self) -> AppResult<Vec<String>> {
         info!("Listing available MCP tools");
 
         match self.client.list_tools(Default::default()).await {
@@ -640,7 +558,10 @@ impl McpClient {
             }
             Err(e) => {
                 error!("Failed to list MCP tools: {:?}", e);
-                Err(format!("Failed to list MCP tools: {}", e).into())
+                Err(AppError::McpError(format!(
+                    "Failed to list MCP tools: {}",
+                    e
+                )))
             }
         }
     }

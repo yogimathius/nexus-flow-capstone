@@ -1,38 +1,12 @@
+use crate::error::{AppError, AppResult};
 use crate::services::mcp_client::McpClientTrait;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
 
-// Define error types
-#[derive(Debug)]
-pub enum ClientError {
-    RequestError(reqwest::Error),
-    ParseError(serde_json::Error),
-    NoChoicesError,
-    EmptyContentError,
-    ApiKeyError(String),
-    RateLimitedError,
-    ModelNotAvailableError,
-}
-
-impl fmt::Display for ClientError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ClientError::RequestError(e) => write!(f, "Request error: {}", e),
-            ClientError::ParseError(e) => write!(f, "Parse error: {}", e),
-            ClientError::NoChoicesError => write!(f, "No choices returned in response"),
-            ClientError::EmptyContentError => write!(f, "Empty content returned"),
-            ClientError::ApiKeyError(e) => write!(f, "API key error: {}", e),
-            ClientError::RateLimitedError => write!(f, "Rate limited by API provider"),
-            ClientError::ModelNotAvailableError => write!(f, "Model not available"),
-        }
-    }
-}
-
-// OpenRouter request/response types
+// Request/response types
 #[derive(Serialize)]
 struct Message {
     role: String,
@@ -61,25 +35,7 @@ struct CompletionResponse {
     choices: Vec<Choice>,
 }
 
-// Azure AI API request/response types
-#[derive(Serialize)]
-struct AzureCompletionRequest {
-    messages: Vec<Message>,
-    max_tokens: u32,
-    model: String,
-}
-
-#[derive(Deserialize)]
-struct AzureChoice {
-    message: ResponseMessage,
-}
-
-#[derive(Deserialize)]
-struct AzureCompletionResponse {
-    choices: Vec<AzureChoice>,
-}
-
-// GitHub AI API request/response types
+// GitHub API request/response types
 #[derive(Serialize)]
 struct GithubCompletionRequest {
     messages: Vec<Message>,
@@ -99,7 +55,6 @@ struct GithubCompletionResponse {
     choices: Vec<GithubChoice>,
 }
 
-// Client implementation
 #[derive(Clone)]
 pub struct AiClient {
     openrouter_api_key: String,
@@ -141,10 +96,7 @@ impl AiClient {
         self.mcp_client.is_some()
     }
 
-    pub async fn request_dream_interpretation(
-        &self,
-        dream_text: &str,
-    ) -> Result<String, ClientError> {
+    pub async fn request_dream_interpretation(&self, dream_text: &str) -> AppResult<String> {
         println!(
             "Preparing dream interpretation request for: {:?}",
             dream_text
@@ -198,158 +150,114 @@ impl AiClient {
         prompt.push_str("\nProvide analysis of the key symbols, potential meanings, and psychological insights from this dream. Consider archetypes, personal associations, and emotional resonance.");
 
         // Try GitHub API first if GitHub token is available
-        if let Some(github_token) = &self.github_token {
-            match self
-                .request_github_interpretation(&prompt, github_token)
-                .await
-            {
-                Ok(result) => return Ok(result),
+        if let Some(token) = &self.github_token {
+            match self.request_github_interpretation(&prompt, token).await {
+                Ok(interpretation) => return Ok(interpretation),
                 Err(e) => {
-                    if matches!(
-                        e,
-                        ClientError::RateLimitedError | ClientError::ModelNotAvailableError
-                    ) {
-                        println!(
-                            "GitHub API request failed with limit error, falling back to OpenRouter: {:?}",
-                            e
-                        );
-                        // Fall through to OpenRouter
-                    } else {
-                        println!("GitHub API request failed with error: {:?}", e);
-                        return Err(e);
-                    }
+                    println!("GitHub API error: {:?}, falling back to OpenRouter", e);
+                    // Fall back to OpenRouter
                 }
             }
         }
 
-        // Fallback to OpenRouter API
-        self.request_openrouter_interpretation(&prompt).await
+        // Use OpenRouter API as fallback
+        match self.request_openrouter_interpretation(&prompt).await {
+            Ok(interpretation) => Ok(interpretation),
+            Err(e) => {
+                println!("OpenRouter API error: {:?}", e);
+                Err(AppError::ExternalServiceError(format!(
+                    "Failed to get interpretation from any API provider: {}",
+                    e
+                )))
+            }
+        }
     }
 
     fn extract_key_symbols(&self, dream_text: &str) -> Vec<String> {
-        // Common dream symbols to look for
+        // Simple symbol extraction based on common keywords
+        // This is a basic implementation - in a real system you'd use NLP or ML for better extraction
+        let text = dream_text.to_lowercase();
         let common_symbols = [
-            "water", "fire", "flying", "falling", "teeth", "death", "snake", "house", "chase",
-            "naked", "test", "school", "maze", "door", "ocean", "mountain", "animal", "bird",
-            "child", "parent", "shadow", "light", "darkness", "journey", "vehicle",
+            "water", "fire", "flying", "falling", "teeth", "death", "snake", "chase", "house",
+            "animal", "school", "baby", "car", "moon", "sun", "star", "ocean", "mountain", "door",
+            "key", "bridge", "path", "shadow", "light", "mother", "father", "child", "god",
+            "devil", "money", "exam", "naked", "wedding", "funeral", "birthday",
         ];
 
-        let text_lower = dream_text.to_lowercase();
-        let mut found_symbols = Vec::new();
-
-        for symbol in common_symbols.iter() {
-            if text_lower.contains(symbol) {
-                found_symbols.push((*symbol).to_string());
-            }
-        }
-
-        // Find other potential symbols (nouns) - this is a simplified approach
-        // In a real implementation, you might want to use NLP for better extraction
-        let words: Vec<&str> = dream_text
-            .split(|c: char| !c.is_alphanumeric() && c != '\'')
-            .filter(|w| !w.is_empty() && w.len() > 3)
-            .collect();
-
-        for word in words {
-            if !common_symbols.contains(&word.to_lowercase().as_str())
-                && !found_symbols.contains(&word.to_lowercase())
-            {
-                // Basic heuristic: proper nouns often start with capital letters
-                if word.chars().next().map_or(false, |c| c.is_uppercase()) {
-                    found_symbols.push(word.to_lowercase());
-                }
-            }
-        }
-
-        found_symbols
+        common_symbols
+            .iter()
+            .filter(|&symbol| text.contains(symbol))
+            .map(|&symbol| symbol.to_string())
+            .collect()
     }
 
     async fn request_github_interpretation(
         &self,
         prompt: &str,
         github_token: &str,
-    ) -> Result<String, ClientError> {
-        println!("Sending request to GitHub Inference API with DeepSeek-V3-0324 model...");
+    ) -> AppResult<String> {
+        println!("Using GitHub API for interpretation");
 
-        let github_request = GithubCompletionRequest {
-            messages: vec![
-                Message {
-                    role: String::from("system"),
-                    content: String::from(
-                        "You are a skilled dream interpreter with expertise in Jungian psychology, symbolism, and dream analysis.",
-                    ),
-                },
-                Message {
-                    role: String::from("user"),
-                    content: prompt.to_string(),
-                },
-            ],
-            max_tokens: 1000,
-            model: String::from("deepseek/DeepSeek-V3-0324"),
-            temperature: 1.0,
-            top_p: 1.0,
+        let request_body = GithubCompletionRequest {
+            messages: vec![Message {
+                role: "user".into(),
+                content: prompt.to_string(),
+            }],
+            max_tokens: 800,
+            model: "gpt-4-1106-preview".to_string(),
+            temperature: 0.7,
+            top_p: 0.9,
         };
 
+        // Try the GitHub API
         let response = self
             .client
-            .post("https://models.github.ai/inference/chat/completions")
-            .header("Content-Type", "application/json")
+            .post("https://api.github.com/copilot_internal/v1/chat_completions")
             .header("Authorization", format!("Bearer {}", github_token))
-            .json(&github_request)
+            .header("Content-Type", "application/json")
+            .header("User-Agent", "GitHub InCopilot/1.0")
+            .json(&request_body)
             .send()
             .await
-            .map_err(ClientError::RequestError)?;
+            .map_err(|e| AppError::HttpError(e))?;
 
         let status = response.status();
-        println!("Received response from GitHub API with status: {}", status);
+        println!("GitHub API response status: {}", status);
 
-        if status.is_client_error() {
-            if status.as_u16() == 429 {
-                println!("GitHub API rate limit exceeded");
-                return Err(ClientError::RateLimitedError);
-            } else {
-                let error_text = response
-                    .text()
-                    .await
-                    .unwrap_or_else(|_| "Unknown error".to_string());
-                println!("GitHub API client error: {}", error_text);
-                return Err(ClientError::ApiKeyError(error_text));
-            }
+        // Check for rate limiting
+        if status.as_u16() == 429 {
+            return Err(AppError::RateLimitedError);
         }
 
+        // Check for other errors
         if !status.is_success() {
-            let error_text = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            println!("GitHub API error: {}", error_text);
-            return Err(ClientError::ApiKeyError(error_text));
+            let error_text = response.text().await.unwrap_or_default();
+            println!("GitHub API error response: {}", error_text);
+
+            return Err(AppError::ExternalServiceError(format!(
+                "GitHub API returned error status: {} - {}",
+                status, error_text
+            )));
         }
 
-        let response_text = response.text().await.map_err(ClientError::RequestError)?;
-        println!("Raw GitHub API Response: {}", response_text);
+        // Parse the successful response
+        let text = response.text().await.map_err(|e| AppError::HttpError(e))?;
+        let completion: GithubCompletionResponse =
+            serde_json::from_str(&text).map_err(|e| AppError::SerializationError(e))?;
 
-        let github_completion: GithubCompletionResponse =
-            serde_json::from_str(&response_text).map_err(ClientError::ParseError)?;
-
-        match github_completion.choices.first() {
-            Some(choice) => {
-                let content = choice.message.content.clone();
-                if content.is_empty() {
-                    println!("Warning: Received empty content from GitHub API");
-                    return Err(ClientError::EmptyContentError);
-                }
-                println!("Successfully extracted interpretation from GitHub API response");
-                Ok(content)
+        // Extract the first choice's message content
+        match completion.choices.first() {
+            Some(choice) if !choice.message.content.is_empty() => {
+                Ok(choice.message.content.clone())
             }
-            None => {
-                eprintln!("No choices found in GitHub API response");
-                Err(ClientError::NoChoicesError)
-            }
+            Some(_) => Err(AppError::ApplicationError("Empty content returned".into())),
+            None => Err(AppError::ApplicationError(
+                "No choices returned in response".into(),
+            )),
         }
     }
 
-    async fn request_openrouter_interpretation(&self, prompt: &str) -> Result<String, ClientError> {
+    async fn request_openrouter_interpretation(&self, prompt: &str) -> AppResult<String> {
         println!("Sending request to OpenRouter API with DeepSeek model...");
 
         let model = "openai/gpt-4.1";
@@ -375,20 +283,15 @@ impl AiClient {
             .header("X-Title", "Dream Interpreter") // Required by OpenRouter
             .json(&request_body)
             .send()
-            .await
-            .map_err(ClientError::RequestError)?;
+            .await?;
 
         println!(
             "Received response from OpenRouter with status: {}",
             response.status()
         );
 
-        let response_text = response.text().await.map_err(ClientError::RequestError)?;
-
-        println!("Raw API Response: {}", response_text);
-
-        let completion: CompletionResponse =
-            serde_json::from_str(&response_text).map_err(ClientError::ParseError)?;
+        let response_text = response.text().await?;
+        let completion: CompletionResponse = serde_json::from_str(&response_text)?;
 
         match completion.choices.first() {
             Some(choice) => {
@@ -397,27 +300,11 @@ impl AiClient {
                     println!("Warning: Received empty content from OpenRouter API");
                     return Ok("The AI model couldn't interpret your dream at this time. Please try again later.".to_string());
                 }
-                println!("Successfully extracted interpretation from OpenRouter API response");
                 Ok(content)
             }
-            None => {
-                eprintln!("No choices found in OpenRouter API response");
-                Err(ClientError::NoChoicesError)
-            }
+            None => Err(AppError::ApplicationError(
+                "No choices returned in response".into(),
+            )),
         }
     }
-
-    async fn request_azure_interpretation(
-        &self,
-        prompt: &str,
-        github_token: &str,
-    ) -> Result<String, ClientError> {
-        // This method is kept for backward compatibility but will be deprecated
-        println!("Azure API endpoint is deprecated. Using GitHub AI API instead.");
-        self.request_github_interpretation(prompt, github_token)
-            .await
-    }
 }
-
-// Legacy alias for backward compatibility
-pub type OpenRouterClient = AiClient;

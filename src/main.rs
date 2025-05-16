@@ -10,7 +10,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Parse command line arguments to get port
     let args: Vec<String> = std::env::args().collect();
-    let port = parse_port_from_args(&args).unwrap_or(3003);
+    let port = parse_port_from_args(&args).unwrap_or(8080);
 
     info!("Initializing Dream Interpreter API...");
 
