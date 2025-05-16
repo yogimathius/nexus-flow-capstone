@@ -23,11 +23,12 @@ This document outlines potential improvements and cleanup opportunities for the 
   - `src/services/ai_client.rs` (uses println)
 - **Status**: Completed - Replaced all println/eprintln with appropriate tracing macros
 
-### 3. Duplicate CORS Configuration
+### 3. ✅ Duplicate CORS Configuration
 
 - **Issue**: CORS configuration is duplicated in `src/server.rs`
 - **Solution**: Extract CORS configuration to a single function and reuse it
 - **Files Affected**: `src/server.rs` (lines 40-60 and 146-166)
+- **Status**: Completed - Created create_cors_layer() helper function and reused it in both places
 
 ## Architecture Improvements
 

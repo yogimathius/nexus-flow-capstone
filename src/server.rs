@@ -36,33 +36,36 @@ pub struct Server {
     port: u16,
 }
 
+// Helper function to create consistent CORS configuration
+fn create_cors_layer() -> CorsLayer {
+    CorsLayer::new()
+        .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
+        .allow_origin("http://localhost:3001".parse::<HeaderValue>().unwrap())
+        .allow_origin("http://localhost:3004".parse::<HeaderValue>().unwrap())
+        .allow_origin("http://127.0.0.1:3000".parse::<HeaderValue>().unwrap())
+        .allow_origin("http://127.0.0.1:3001".parse::<HeaderValue>().unwrap())
+        .allow_origin("http://127.0.0.1:3004".parse::<HeaderValue>().unwrap())
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers(Any)
+}
+
 impl Server {
     pub fn new(port: u16) -> Self {
         Server { port }
     }
 
     pub fn router(&self) -> axum::Router {
-        let cors = CorsLayer::new()
-            .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
-            .allow_origin("http://localhost:3001".parse::<HeaderValue>().unwrap())
-            .allow_origin("http://localhost:3004".parse::<HeaderValue>().unwrap())
-            .allow_origin("http://127.0.0.1:3000".parse::<HeaderValue>().unwrap())
-            .allow_origin("http://127.0.0.1:3001".parse::<HeaderValue>().unwrap())
-            .allow_origin("http://127.0.0.1:3004".parse::<HeaderValue>().unwrap())
-            .allow_methods([
-                Method::GET,
-                Method::POST,
-                Method::PUT,
-                Method::DELETE,
-                Method::OPTIONS,
-            ])
-            .allow_headers(Any);
-
         let app_state = AppState {
             db_pool: sqlx::PgPool::connect_lazy("postgresql://").unwrap(),
             ai_client: crate::AiClient::new("dummy_key".to_string(), None),
         };
-        api::router(app_state).layer(cors)
+        api::router(app_state).layer(create_cors_layer())
     }
 
     pub async fn run(&self) {
@@ -134,24 +137,8 @@ impl Server {
 
         let app = api::router(app_state);
 
-        let cors = CorsLayer::new()
-            // .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
-            // .allow_origin("http://localhost:3001".parse::<HeaderValue>().unwrap())
-            .allow_origin("http://localhost:3004".parse::<HeaderValue>().unwrap())
-            // .allow_origin("http://127.0.0.1:3000".parse::<HeaderValue>().unwrap())
-            // .allow_origin("http://127.0.0.1:3001".parse::<HeaderValue>().unwrap())
-            .allow_origin("http://127.0.0.1:3004".parse::<HeaderValue>().unwrap())
-            .allow_methods([
-                Method::GET,
-                Method::POST,
-                Method::PUT,
-                Method::DELETE,
-                Method::OPTIONS,
-            ])
-            .allow_headers(Any);
-
         let app = app
-            .layer(cors)
+            .layer(create_cors_layer())
             .layer(tower_http::trace::TraceLayer::new_for_http());
 
         let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
