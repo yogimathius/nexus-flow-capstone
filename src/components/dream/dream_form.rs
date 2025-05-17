@@ -4,6 +4,8 @@ use leptos::prelude::*;
 use leptos::logging::log;
 use wasm_bindgen_futures::spawn_local;
 
+const MIN_DREAM_LENGTH: usize = 20; // Minimum characters for a meaningful dream description
+
 #[component]
 pub fn DreamForm(
     dream_text: ReadSignal<String>,
@@ -12,8 +14,8 @@ pub fn DreamForm(
     set_is_loading: WriteSignal<bool>,
     auto_save: ReadSignal<bool>,
     set_auto_save: WriteSignal<bool>, 
-    button_disabled: ReadSignal<bool>,
-    set_button_disabled: WriteSignal<bool>,
+    _button_disabled: ReadSignal<bool>,
+    _set_button_disabled: WriteSignal<bool>,
     error: ReadSignal<Option<String>>,
     set_error: WriteSignal<Option<String>>,
     set_interpretation: WriteSignal<Option<String>>,
@@ -30,9 +32,14 @@ pub fn DreamForm(
 
         let dream = dream_text.get();
 
-        // Validate input
+        // Enhanced validation
         if dream.trim().is_empty() {
             set_error.set(Some("Please enter your dream description".to_string()));
+            return;
+        }
+
+        if dream.trim().len() < MIN_DREAM_LENGTH {
+            set_error.set(Some(format!("Your dream description needs to be at least {} characters for a meaningful interpretation", MIN_DREAM_LENGTH)));
             return;
         }
 
@@ -64,9 +71,26 @@ pub fn DreamForm(
             }
 
             // Set loading state back to false
-            set_is_loading.set(false);
+            set_is_loading.set(false);            
             log!("Request completed, loading state set to false");
         });
+    };
+
+    // Computed signal for character count
+    let char_count = Signal::derive(move || dream_text.get().len());
+    
+    // Determine validation status based on text length
+    let get_validation_status = move || {
+        let text = dream_text.get();
+        let count = text.trim().len();
+        
+        if count == 0 {
+            "empty"
+        } else if count < MIN_DREAM_LENGTH {
+            "too-short"
+        } else {
+            "valid"
+        }
     };
 
     view! {
@@ -76,25 +100,91 @@ pub fn DreamForm(
             class="stack gap-6"
         >
             <div class="stack gap-2">
-                <label for="dream-text" class="label">"Describe your dream"</label>
-                <textarea
-                    id="dream-text"
-                    class="textarea"
-                    placeholder="Enter your dream description..."
-                    prop:value=dream_text
-                    on:input=move |ev| {
-                        let value = event_target_value(&ev);
-
-                        // Directly update button state on input
-                        let should_disable = value.trim().is_empty() || is_loading.get();
-                        set_button_disabled.set(should_disable);
-
-                        // Set the dream text after checking the value
-                        set_dream_text.set(value);
-
-                        log!("Textarea input updated, button disabled: {}", should_disable);
+                <label for="dream-text" class="label">
+                    "Describe your dream"
+                    <span class="text-sm text-muted ml-2">
+                        {"(minimum "}{MIN_DREAM_LENGTH}{" characters)"}
+                    </span>
+                </label>
+                <div class=move || {
+                    let mut classes = "textarea-container".to_string();
+                    if error.get().is_some() {
+                        classes.push_str(" error");
                     }
-                />
+                    classes
+                }>
+                    <textarea
+                        id="dream-text"
+                        class="textarea"
+                        placeholder="Enter your dream description in detail..."
+                        prop:value=dream_text
+                        aria-invalid=move || error.get().is_some().to_string()
+                        aria-describedby="dream-validation-message char-counter"
+                        on:input=move |ev| {
+                            let value = event_target_value(&ev);
+                            
+                            // Clear any previous error when user types
+                            if error.get().is_some() {
+                                set_error.set(None);
+                            }
+
+                            // Set the dream text
+                            set_dream_text.set(value);
+
+                            log!("Textarea input updated");
+                        }
+                    />
+                    <div class="char-counter" id="char-counter">
+                        <span class=move || {
+                            let validation = get_validation_status();
+                            
+                            let mut classes = "counter-text".to_string();
+                            if validation == "empty" {
+                                classes.push_str(" text-error");
+                            } else if validation == "too-short" {
+                                classes.push_str(" text-warning");
+                            } else if validation == "valid" {
+                                classes.push_str(" text-success");
+                            }
+                            
+                            classes
+                        }>
+                            {move || char_count.get()}
+                            " / "
+                            {MIN_DREAM_LENGTH}
+                            " characters"
+                        </span>
+                    </div>
+                </div>
+                <div id="dream-validation-message" class="validation-message" aria-live="polite">
+                    <Show
+                        when=move || error.get().is_some()
+                        fallback=move || {
+                            let status = get_validation_status();
+                            view! {
+                                <Show
+                                    when=move || status == "empty" 
+                                    fallback=move || {
+                                        view! {
+                                            <Show
+                                                when=move || status == "too-short"
+                                                fallback=move || view! { <span class="text-success"></span> }
+                                            >
+                                                <span class="text-warning">
+                                                    "Your dream is too short for meaningful interpretation. Please add more details."
+                                                </span>
+                                            </Show>
+                                        }
+                                    }
+                                >
+                                    <span class="text-error">"Please enter your dream"</span>
+                                </Show>
+                            }
+                        }
+                    >
+                        <span class="text-error">{move || error.get().unwrap_or_default()}</span>
+                    </Show>
+                </div>
             </div>
 
             <div class="flex items-center gap-2">
@@ -112,15 +202,10 @@ pub fn DreamForm(
 
             <Button
                 variant=ButtonVariant::Primary
-                // disabled=button_disabled.get()
                 class="full-width".to_string()
             >
                 {move || if is_loading.get() { "Interpreting..." } else { "Interpret Dream" }}
             </Button>
-
-            {move || error.get().map(|err| view! {
-                <div class="text-error">{err}</div>
-            })}
         </form>
     </div>
     }
