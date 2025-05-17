@@ -33,7 +33,7 @@ pub struct DreamResponse {
 }
 
 pub struct Server {
-    port: u16,
+    // Removing unused port field
 }
 
 // Helper function to create consistent CORS configuration
@@ -56,17 +56,16 @@ fn create_cors_layer() -> CorsLayer {
 }
 
 impl Server {
-    pub fn new(port: u16) -> Self {
-        Server { port }
+    pub fn new(_port: u16) -> Self {
+        Server {}
     }
 
     pub fn router(&self) -> axum::Router {
         let app_state = AppState {
             db_pool: sqlx::PgPool::connect_lazy("postgresql://").unwrap(),
-            ai_client: std::sync::Arc::new(Box::new(crate::AiClient::new(
-                "dummy_key".to_string(),
-                None,
-            )) as Box<dyn crate::AiClientTrait>),
+            ai_client: std::sync::Arc::new(
+                Box::new(crate::AiClient::new(None)) as Box<dyn crate::AiClientTrait>
+            ),
         };
         api::router(app_state).layer(create_cors_layer())
     }
