@@ -63,7 +63,10 @@ impl Server {
     pub fn router(&self) -> axum::Router {
         let app_state = AppState {
             db_pool: sqlx::PgPool::connect_lazy("postgresql://").unwrap(),
-            ai_client: crate::AiClient::new("dummy_key".to_string(), None),
+            ai_client: std::sync::Arc::new(Box::new(crate::AiClient::new(
+                "dummy_key".to_string(),
+                None,
+            )) as Box<dyn crate::AiClientTrait>),
         };
         api::router(app_state).layer(create_cors_layer())
     }
