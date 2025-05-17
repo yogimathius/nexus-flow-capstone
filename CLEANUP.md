@@ -32,13 +32,14 @@ This document outlines potential improvements and cleanup opportunities for the 
 
 ## Architecture Improvements
 
-### 1. Dependency Injection
+### 1. ✅ Dependency Injection
 
 - **Issue**: Direct instantiation of dependencies makes testing difficult
 - **Solution**: Implement proper dependency injection throughout the codebase
 - **Files Affected**:
   - `src/lib.rs` (AppState)
   - `src/services/ai_client.rs`
+- **Status**: Completed - Implemented trait-based dependency injection for AiClient using the clone_box pattern, added mock implementations for testing, and documented the pattern in docs/dependency_injection.md
 
 ### 2. Service Layer Abstraction
 

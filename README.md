@@ -120,6 +120,18 @@ src/
 └── server.rs       # Server implementation
 ```
 
+### Design Patterns
+
+#### Dependency Injection
+
+Nexus Core uses trait-based dependency injection for better testability and modularity:
+
+- **Trait Interfaces**: Services expose trait interfaces (e.g., `AiClientTrait`, `McpClientTrait`)
+- **Trait Objects**: Dynamic dispatch via `Box<dyn Trait>` and `Arc<Box<dyn Trait>>`
+- **Mock Implementations**: Easy creation of mock services for testing
+
+For more details, see [docs/dependency_injection.md](docs/dependency_injection.md).
+
 ### Running Tests
 
 ```bash
