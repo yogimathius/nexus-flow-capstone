@@ -35,7 +35,6 @@ fn offset_to_chrono(dt: Option<OffsetDateTime>) -> DateTime<Utc> {
 }
 
 impl Dream {
-    // Create a new dream in the database
     pub async fn create(pool: &PgPool, text: &str, interpretation: &str) -> Result<Uuid, Error> {
         let record = sqlx::query!(
             r#"
@@ -52,7 +51,6 @@ impl Dream {
         Ok(record.id)
     }
 
-    // Get a dream by ID
     pub async fn get_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Dream>, Error> {
         let record = sqlx::query!(
             r#"
@@ -76,7 +74,6 @@ impl Dream {
         }
     }
 
-    // List all dreams in reverse chronological order
     pub async fn list(pool: &PgPool) -> Result<Vec<Dream>, Error> {
         let records = sqlx::query!(
             r#"
@@ -88,7 +85,6 @@ impl Dream {
         .fetch_all(pool)
         .await?;
 
-        // Convert database records to our Dream struct
         let dreams = records
             .into_iter()
             .map(|r| Dream {

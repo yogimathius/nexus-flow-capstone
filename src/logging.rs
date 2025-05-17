@@ -29,10 +29,3 @@ pub fn setup_logging() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     Ok(())
 }
-
-/// Creates a middleware layer that adds tracing to the HTTP request/response cycle
-pub fn trace_layer() -> tower_http::trace::TraceLayer<
-    tower_http::classify::SharedClassifier<tower_http::classify::ServerErrorsAsFailures>,
-> {
-    tower_http::trace::TraceLayer::new_for_http()
-}
