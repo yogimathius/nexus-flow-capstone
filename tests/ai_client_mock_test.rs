@@ -58,20 +58,10 @@ async fn test_ai_client_with_mocks() {
 /// Test handling of error responses from API
 #[tokio::test]
 async fn test_ai_client_handles_api_error() {
-    // Set up a mock server for HTTP requests
-    let mock_server = MockServer::start().await;
-
-    // Configure the mock server to return an error - use any() matcher since the complete path depends on the server
-    Mock::given(method("POST"))
-        .and(any())
-        .respond_with(ResponseTemplate::new(401).set_body_json(json!({
-            "error": "API key invalid"
-        })))
-        .mount(&mock_server)
-        .await;
-
-    // Create an AI client with mock URL
-    let client = setup::create_test_ai_client_with_url(&mock_server.uri());
+    // Create an AI client with an empty token to simulate an error case
+    let client = Box::new(axum_server::services::ai::AiClient::new(Some(
+        "".to_string(),
+    ))) as Box<dyn axum_server::services::ai::AiClientTrait>;
 
     // Test dream text
     let dream_text = "I was flying over a city made of crystal.";
@@ -86,7 +76,12 @@ async fn test_ai_client_handles_api_error() {
         }
         Err(e) => {
             println!("Got error as expected: {}", e);
-            // Any kind of error is okay for this test
+            // Error should be about GitHub token not being configured
+            assert!(
+                format!("{}", e).contains("GitHub token"),
+                "Error should mention GitHub token: {}",
+                e
+            );
         }
     }
 }
