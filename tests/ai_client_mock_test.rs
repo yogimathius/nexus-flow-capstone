@@ -1,7 +1,6 @@
 mod mocks;
 mod setup;
 
-use axum_server::services::ai_client::AiClient;
 use serde_json::json;
 use wiremock::matchers::{any, method};
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -32,22 +31,13 @@ async fn test_ai_client_with_mocks() {
         .await;
 
     // Create an AI client using the mock URL
-    let client =
-        AiClient::new("test_api_key".to_string(), None).with_openrouter_url(&mock_server.uri());
-
-    // Create a mock MCP client
-    let mock_mcp = mocks::MockMcpClient::new();
-
-    // Connect AI client with mock MCP client
-    let client_with_mcp = client.with_mcp_client(mock_mcp);
+    let client = setup::create_test_ai_client_with_url(&mock_server.uri());
 
     // Test dream text
     let dream_text = "I was flying over a city made of crystal.";
 
     // Request interpretation
-    let result = client_with_mcp
-        .request_dream_interpretation(dream_text)
-        .await;
+    let result = client.request_dream_interpretation(dream_text).await;
 
     // We expect the mock to return a proper response
     match result {
@@ -81,8 +71,7 @@ async fn test_ai_client_handles_api_error() {
         .await;
 
     // Create an AI client with mock URL
-    let client =
-        AiClient::new("invalid_key".to_string(), None).with_openrouter_url(&mock_server.uri());
+    let client = setup::create_test_ai_client_with_url(&mock_server.uri());
 
     // Test dream text
     let dream_text = "I was flying over a city made of crystal.";

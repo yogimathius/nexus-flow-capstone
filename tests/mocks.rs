@@ -1,9 +1,8 @@
-use axum_server::services::mcp_client::{McpClientTrait, SymbolMeaning, TextOperation};
-use std::error::Error;
+use axum_server::AppResult;
+use axum_server::services::mcp::{McpClientTrait, SymbolMeaning, TextOperation};
 use std::future::Future;
 use std::pin::Pin;
 
-/// Mock implementation of the MCP client for testing
 pub struct MockMcpClient {}
 
 impl MockMcpClient {
@@ -21,10 +20,8 @@ impl McpClientTrait for MockMcpClient {
         &'a self,
         text: &'a str,
         operation: TextOperation,
-    ) -> Pin<Box<dyn Future<Output = Result<String, Box<dyn Error + Send + Sync>>> + Send + 'a>>
-    {
+    ) -> Pin<Box<dyn Future<Output = AppResult<String>> + Send + 'a>> {
         Box::pin(async move {
-            // Simple mock implementation
             match operation {
                 TextOperation::Count => {
                     let char_count = text.chars().count();
@@ -41,15 +38,8 @@ impl McpClientTrait for MockMcpClient {
     fn lookup_symbols<'a>(
         &'a self,
         symbols: Vec<&'a str>,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<Vec<SymbolMeaning>, Box<dyn Error + Send + Sync>>>
-                + Send
-                + 'a,
-        >,
-    > {
+    ) -> Pin<Box<dyn Future<Output = AppResult<Vec<SymbolMeaning>>> + Send + 'a>> {
         Box::pin(async move {
-            // Return mock symbol meanings
             let mut results = Vec::new();
 
             for symbol in symbols {
@@ -66,13 +56,13 @@ impl McpClientTrait for MockMcpClient {
 
     fn list_tools<'a>(
         &'a self,
-    ) -> std::pin::Pin<
-        Box<
-            dyn std::future::Future<Output = Result<Vec<String>, Box<dyn Error + Send + Sync>>>
-                + Send
-                + 'a,
-        >,
-    > {
-        todo!()
+    ) -> Pin<Box<dyn Future<Output = AppResult<Vec<String>>> + Send + 'a>> {
+        Box::pin(async move {
+            Ok(vec![
+                "get_symbols".to_string(),
+                "search_symbols".to_string(),
+                "get_categories".to_string(),
+            ])
+        })
     }
 }

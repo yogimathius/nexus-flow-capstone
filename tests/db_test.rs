@@ -1,6 +1,5 @@
 mod setup;
 
-
 // This module will be implemented along with the database models
 // For now, we'll set up basic tests that will be filled in as we implement
 
@@ -8,7 +7,7 @@ mod setup;
 #[ignore] // Ignore until database model is implemented
 async fn test_create_dream() {
     // Test creating a dream in the database
-    let pool = setup::create_test_db_pool().await;
+    let _pool = setup::create_test_db_pool().await;
 
     // TODO: Implement this test once the dream model is created
 
@@ -25,7 +24,7 @@ async fn test_create_dream() {
 #[ignore] // Ignore until database model is implemented
 async fn test_get_dream_by_id() {
     // Test retrieving a dream from the database by ID
-    let pool = setup::create_test_db_pool().await;
+    let _pool = setup::create_test_db_pool().await;
 
     // TODO: Implement this test once the dream model is created
 
@@ -44,7 +43,7 @@ async fn test_get_dream_by_id() {
 #[ignore] // Ignore until database model is implemented
 async fn test_list_dreams() {
     // Test listing all dreams from the database
-    let pool = setup::create_test_db_pool().await;
+    let _pool = setup::create_test_db_pool().await;
 
     // TODO: Implement this test once the dream model is created
 

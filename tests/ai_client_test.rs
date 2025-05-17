@@ -1,6 +1,6 @@
 mod setup;
 
-use axum_server::services::ai_client::ClientError;
+use axum_server::AppError;
 
 // Test the AI client with a mock
 #[tokio::test]
@@ -31,16 +31,15 @@ async fn test_ai_client_basic() {
         }
         Err(e) => {
             // If we get an error, it should be a reasonable error
-            // like ApiKeyError, RateLimitedError, or ModelNotAvailableError
             match e {
-                ClientError::ApiKeyError(_)
-                | ClientError::RateLimitedError
-                | ClientError::ModelNotAvailableError => {
+                AppError::ApiKeyError(_)
+                | AppError::RateLimitedError
+                | AppError::ExternalServiceError(_) => {
                     // These errors are acceptable in a test environment
-                    println!("Got expected error during testing: {}", e);
+                    println!("Got expected error during testing: {:?}", e);
                 }
                 unexpected_error => {
-                    panic!("Unexpected error from AI client: {}", unexpected_error);
+                    panic!("Unexpected error from AI client: {:?}", unexpected_error);
                 }
             }
         }
