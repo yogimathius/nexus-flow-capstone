@@ -126,10 +126,3 @@ This document outlines potential improvements and cleanup opportunities for the 
 2. Add unit tests for critical paths
 3. Enhance API documentation
 4. Tune database connection pooling
-
-### Long-term
-
-1. Refactor service layer for better abstraction
-2. Implement caching strategy
-3. Add comprehensive integration tests
-4. Enhance security measures
