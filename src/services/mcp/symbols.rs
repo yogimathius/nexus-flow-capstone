@@ -180,49 +180,4 @@ impl SymbolLookup {
             }
         }
     }
-
-    /// Lookup symbols in a local database when MCP is unavailable
-    pub fn lookup_locally(symbols: Vec<&str>) -> AppResult<Vec<SymbolMeaning>> {
-        let mut results = Vec::new();
-
-        for symbol in symbols {
-            let meaning = match symbol.to_lowercase().as_str() {
-                "water" => SymbolMeaning {
-                    symbol: symbol.to_string(),
-                    meaning: "Represents the unconscious, emotion, or the flow of life".to_string(),
-                    contexts: vec!["Jungian".to_string(), "Universal".to_string()],
-                },
-                "fire" => SymbolMeaning {
-                    symbol: symbol.to_string(),
-                    meaning: "Transformation, passion, or destruction and rebirth".to_string(),
-                    contexts: vec!["Alchemical".to_string(), "Universal".to_string()],
-                },
-                "snake" => SymbolMeaning {
-                    symbol: symbol.to_string(),
-                    meaning: "Renewal, transformation, healing, or kundalini energy".to_string(),
-                    contexts: vec!["Jungian".to_string(), "Mythological".to_string()],
-                },
-                "falling" => SymbolMeaning {
-                    symbol: symbol.to_string(),
-                    meaning: "Loss of control, anxiety, or letting go".to_string(),
-                    contexts: vec!["Psychological".to_string()],
-                },
-                "flying" => SymbolMeaning {
-                    symbol: symbol.to_string(),
-                    meaning: "Freedom, transcendence, or escape from limitations".to_string(),
-                    contexts: vec!["Psychological".to_string(), "Spiritual".to_string()],
-                },
-                // Add more symbols as needed
-                _ => SymbolMeaning {
-                    symbol: symbol.to_string(),
-                    meaning: "No standard meaning found in local database".to_string(),
-                    contexts: vec![],
-                },
-            };
-
-            results.push(meaning);
-        }
-
-        Ok(results)
-    }
 }
