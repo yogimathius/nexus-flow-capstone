@@ -6,7 +6,6 @@ use leptos_router::hooks::use_params_map;
 
 #[component]
 pub fn JournalEntryPage() -> impl IntoView {
-    // Get dream ID from route params
     let params = use_params_map();
     let dream_id = params.with(|params| {
         params
@@ -15,12 +14,10 @@ pub fn JournalEntryPage() -> impl IntoView {
             .unwrap_or_default()
     });
 
-    // Use our custom hook to get dream data and state
     let state = use_dream_data(dream_id);
 
     view! {
         <div class="fade-in">
-            // Header with title and subtitle
             <EntryHeader
                 title="Dream Journal Entry"
                 subtitle="Explore the interpretation of your dream in detail."

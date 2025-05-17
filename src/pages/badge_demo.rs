@@ -1,5 +1,5 @@
 use crate::components::{Badge, BadgeVariant};
-use leptos::{prelude::*, *};
+use leptos::{prelude::*};
 
 #[component]
 pub fn BadgeDemo() -> impl IntoView {
