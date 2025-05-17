@@ -1,7 +1,9 @@
 // A reusable markdown rendering component for consistent styling
 mod markdown;
+mod styled_interpretation;
 
 pub use markdown::{DreamText, InterpretationText, Markdown};
+pub use styled_interpretation::StyledInterpretation;
 
 /// Converts markdown text to styled HTML
 ///
