@@ -40,7 +40,7 @@ pub struct ModelConfig {
 impl Default for ModelConfig {
     fn default() -> Self {
         Self {
-            name: "openai/gpt-4.1".to_string(),
+            name: "openai/gpt-4o".to_string(),
             temperature: 0.7,
             top_p: 0.9,
             max_tokens: None,

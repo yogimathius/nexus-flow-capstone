@@ -48,9 +48,9 @@ impl OpenRouterProvider {
         OpenRouterProvider {
             api_key,
             client,
-            url: "https://openrouter.ai/api/v1/chat/completions".to_string(),
+            url: "https://openrouter.ai/api/v1".to_string(),
             model_config: ModelConfig {
-                name: "openai/gpt-4.1".to_string(),
+                name: "deepseek/deepseek-prover-v2:free".to_string(),
                 temperature: 0.7,
                 top_p: 0.9,
                 max_tokens: None,
