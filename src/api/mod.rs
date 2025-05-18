@@ -4,13 +4,14 @@ pub mod validation;
 
 use axum::{
     Router,
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 
 use crate::AppState;
 
 use self::dream::{
-    create_dream_handler, get_dream_handler, interpret_dream_handler, list_dreams_handler,
+    add_tag_handler, create_dream_handler, get_dream_handler, interpret_dream_handler,
+    list_dreams_handler, remove_tag_handler, search_dreams_handler,
 };
 use self::health::health_handler;
 
@@ -21,6 +22,9 @@ pub fn router(state: AppState) -> Router {
         .route("/api/interpret_dream", post(interpret_dream_handler))
         .route("/api/dreams", post(create_dream_handler))
         .route("/api/dreams", get(list_dreams_handler))
+        .route("/api/dreams/search", get(search_dreams_handler))
         .route("/api/dreams/{id}", get(get_dream_handler))
+        .route("/api/dreams/{id}/tags", post(add_tag_handler))
+        .route("/api/dreams/{id}/tags/{tag}", delete(remove_tag_handler))
         .with_state(state)
 }
