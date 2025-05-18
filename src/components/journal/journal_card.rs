@@ -61,17 +61,87 @@ pub fn JournalCard(
     let time = format_time(&dream.created_at);
     let clean_interp = clean_interpretation_preview(&dream.interpretation, 120);
 
+    // Create a signal for tracking favorite status
+    let (is_favorite, set_is_favorite) = signal(dream.is_favorite);
+
+    // Create a signal for tags to prevent the move issue
+    let (dream_tags, _) = signal(dream.tags.clone());
+
+    // Toggle favorite status
+    let toggle_favorite = move |_| {
+        // Here we would normally update the server state
+        // For now, we just toggle the local state
+        set_is_favorite.update(|f| *f = !*f);
+    };
+
     view! {
         <div class=format!("dream-card slide-up {}", animation_delay)>
             <div class="dream-card-header">
-                <span class="badge dream">"Dream"</span>
+                <div class="dream-card-badges">
+                    <span class="badge dream">"Dream"</span>
+
+                    // Show category if available
+                    {dream
+                        .category
+                        .clone()
+                        .map(|category| {
+                            view! { <span class="badge category">{category}</span> }
+                        })}
+                </div>
+
                 <div class="dream-meta">
                     <div class="dream-date">{date}</div>
                     <div class="dream-time">{time}</div>
                 </div>
+
+                // Favorite button
+                <button
+                    type="button"
+                    class=move || {
+                        format!("favorite-btn {}", if is_favorite.get() { "active" } else { "" })
+                    }
+                    on:click=toggle_favorite
+                    aria-label=move || {
+                        if is_favorite.get() { "Remove from favorites" } else { "Add to favorites" }
+                    }
+                    aria-pressed=move || is_favorite.get().to_string()
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill=move || if is_favorite.get() { "currentColor" } else { "none" }
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                    >
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                </button>
             </div>
+
             <h3 class="dream-title">{truncate(&dream.text, 60)}</h3>
             <p class="dream-interpretation">{clean_interp}</p>
+
+            // Tags
+            <Show when=move || !dream_tags.get().is_empty()>
+                <div class="dream-tags">
+                    {move || {
+                        dream_tags
+                            .get()
+                            .iter()
+                            .map(|tag| {
+                                let tag = tag.clone();
+                                view! { <span class="dream-tag">{tag}</span> }
+                            })
+                            .collect::<Vec<_>>()
+                    }}
+                </div>
+            </Show>
+
             <a href=format!("/journal/{}", dream.id) class="view-dream-link">
                 "View Full Dream"
                 <svg
@@ -84,6 +154,7 @@ pub fn JournalCard(
                     stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
+                    aria-hidden="true"
                 >
                     <path d="M5 12h14"></path>
                     <path d="m12 5 7 7-7 7"></path>
