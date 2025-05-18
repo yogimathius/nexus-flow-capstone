@@ -2,7 +2,6 @@ use crate::components::dream::{
     constants::get_theme_sentence, DreamForm, DreamResult, DreamThemes, DreamTips,
 };
 use crate::components::feedback::LoadingIndicator;
-use leptos::logging::log;
 use leptos::prelude::*;
 
 #[component]
@@ -50,12 +49,14 @@ pub fn DreamInterpreter() -> impl IntoView {
     view! {
         <div class="dream-interpreter-container fade-in" role="main" aria-live="polite">
             <h1 class="visually-hidden">Dream Interpreter</h1>
-            
+
             // Two-column layout on larger screens
             <div class="dream-form-layout">
                 // Dream form column
                 <div class="dream-form" role="form" aria-labelledby="dream-form-heading">
-                    <h2 id="dream-form-heading" class="visually-hidden">Dream Description Form</h2>
+                    <h2 id="dream-form-heading" class="visually-hidden">
+                        Dream Description Form
+                    </h2>
                     <DreamForm
                         dream_text=dream_text
                         set_dream_text=set_dream_text
@@ -74,38 +75,49 @@ pub fn DreamInterpreter() -> impl IntoView {
 
                 // Common themes column
                 <div class="dream-themes" role="region" aria-labelledby="themes-heading">
-                    <h2 id="themes-heading" class="visually-hidden">Common Dream Themes</h2>
+                    <h2 id="themes-heading" class="visually-hidden">
+                        Common Dream Themes
+                    </h2>
                     <DreamThemes on_theme_click=handle_badge_click />
                 </div>
             </div>
 
             // Loading indicator (visible only during loading)
             <Show when=move || is_loading.get() fallback=|| ()>
-                <div class="loading-container" 
-                     id=loading_id 
-                     role="status" 
-                     aria-live="assertive"
-                     aria-label="Interpreting your dream">
+                <div
+                    class="loading-container"
+                    id=loading_id
+                    role="status"
+                    aria-live="assertive"
+                    aria-label="Interpreting your dream"
+                >
                     <LoadingIndicator />
                     <span class="loading-text">Interpreting your dream...</span>
                 </div>
             </Show>
 
             // Interpretation results (full width)
-            <div class="dream-interpretation" 
-                 id=interpretation_id 
-                 role="region" 
-                 aria-labelledby="interpretation-heading"
-                 aria-live="polite">
-                <h2 id="interpretation-heading" class="visually-hidden">Dream Interpretation Result</h2>
-                <Show when=show_result fallback={move || {
-                    let loading = is_loading.get();
-                    view! { 
-                        <Show when=move || !loading fallback=|| ()>
-                            <DreamTips /> 
-                        </Show>
+            <div
+                class="dream-interpretation"
+                id=interpretation_id
+                role="region"
+                aria-labelledby="interpretation-heading"
+                aria-live="polite"
+            >
+                <h2 id="interpretation-heading" class="visually-hidden">
+                    Dream Interpretation Result
+                </h2>
+                <Show
+                    when=show_result
+                    fallback=move || {
+                        let loading = is_loading.get();
+                        view! {
+                            <Show when=move || !loading fallback=|| ()>
+                                <DreamTips />
+                            </Show>
+                        }
                     }
-                }}>
+                >
                     <DreamResult
                         interpretation=interpretation.into()
                         saved_dream_id=saved_dream_id.into()

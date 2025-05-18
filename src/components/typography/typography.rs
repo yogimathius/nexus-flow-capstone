@@ -1,5 +1,4 @@
 use leptos::prelude::*;
-use leptos::*;
 
 /// Title component - Uses h1 styling with gradient effect
 #[component]
