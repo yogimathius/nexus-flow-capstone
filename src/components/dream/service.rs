@@ -1,9 +1,11 @@
 use crate::components::dream::models::{DreamRequest, DreamResponse};
 use leptos::logging::{log, error};
 use reqwest::Client;
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
 const API_URL: &str = "http://localhost:8080/api/interpret_dream";
+#[cfg(not(target_arch = "wasm32"))]
 const REQUEST_TIMEOUT: u64 = 30; // seconds
 
 pub async fn interpret_dream(dream_text: String, save: bool) -> Result<DreamResponse, String> {
@@ -13,15 +15,20 @@ pub async fn interpret_dream(dream_text: String, save: bool) -> Result<DreamResp
     };
 
     let client = Client::new();
-
-    match client
-        .post(API_URL)
-        .timeout(Duration::from_secs(REQUEST_TIMEOUT))
+    
+    // Build the request with conditional timeout for non-WASM targets
+    let request_builder = client.post(API_URL);
+    
+    // Apply timeout only for non-WASM targets
+    #[cfg(not(target_arch = "wasm32"))]
+    let request_builder = request_builder.timeout(Duration::from_secs(REQUEST_TIMEOUT));
+    
+    // Continue with the rest of the request configuration
+    let request_builder = request_builder
         .header("Content-Type", "application/json")
-        .json(&request_payload)
-        .send()
-        .await
-    {
+        .json(&request_payload);
+
+    match request_builder.send().await {
         Ok(response) => {
             let status = response.status();
             
@@ -82,17 +89,22 @@ pub async fn interpret_dream(dream_text: String, save: bool) -> Result<DreamResp
                 }
             }
         }
-        Err(e) => {
-            // More specific network-related errors
-            let error_detail = if e.is_timeout() {
+        Err(_e) => {
+            // Different error handling for different platforms
+            #[cfg(not(target_arch = "wasm32"))]
+            let error_detail = if _e.is_timeout() {
                 "The request timed out. The server might be busy."
-            } else if e.is_connect() {
+            } else if _e.is_connect() {
                 "Could not connect to the service."
-            } else if e.is_request() {
+            } else if _e.is_request() {
                 "There was a problem with your request."
             } else {
                 "Please check your internet connection and try again."
             };
+            
+            // Simplified error handling for WASM target
+            #[cfg(target_arch = "wasm32")]
+            let error_detail = "Please check your internet connection and try again.";
             
             let error_msg = format!(
                 "Failed to connect to the interpretation service. {}",
