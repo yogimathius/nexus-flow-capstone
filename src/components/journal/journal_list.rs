@@ -1,8 +1,8 @@
 use crate::components::journal::{
-    models::{Dream, Pagination},
+    models::{Dream, DreamSearchFilters, Pagination},
     service::{check_server_status, fetch_dreams},
     JournalCard, JournalEmptyState, JournalError, JournalFilters, JournalLoading,
-    JournalPagination,
+    JournalPagination, OfflineBanner, OfflineIndicator,
 };
 use leptos::prelude::*;
 
@@ -25,47 +25,64 @@ pub fn JournalList() -> impl IntoView {
     let (search_query, set_search_query) = signal(String::new());
     // Date filter
     let (date_filter, set_date_filter) = signal(String::new());
+    // Category filter
+    let (category_filter, set_category_filter) = signal("All Categories".to_string());
+    // Tags filter
+    let (selected_tags, set_selected_tags) = signal(Vec::<String>::new());
+    // Favorites only filter
+    let (favorites_only, set_favorites_only) = signal(false);
+    // Offline mode
+    let (is_offline, set_is_offline) = signal(false);
     // Trigger for refreshing dreams
     let (refresh_trigger, set_refresh_trigger) = signal(0);
 
     // Create a memo to track dependencies for fetching
-    let deps = Memo::new(move |_| {
+    let search_filters = Memo::new(move |_| DreamSearchFilters {
+        search_query: search_query.get(),
+        date_filter: date_filter.get(),
+        category: category_filter.get(),
+        tags: selected_tags.get(),
+        favorites_only: favorites_only.get(),
+    });
+
+    let fetch_deps = Memo::new(move |_| {
         (
             refresh_trigger.get(),
             pagination.get(),
-            search_query.get(),
-            date_filter.get(),
+            search_filters.get(),
         )
     });
 
     // Create an effect to handle fetching
     Effect::new(move |_| {
-        let (_, pagination, search_query, date_filter) = deps.get();
+        let (_, pagination, filters) = fetch_deps.get();
         set_is_loading.set(true);
         set_error.set(None);
 
-        fetch_dreams(
-            &pagination,
-            &search_query,
-            &date_filter,
-            move |data| {
-                // Calculate pagination
-                let total_dreams = data.len();
-                let items_per_page = pagination.items_per_page;
-                let total_pages = (total_dreams + items_per_page - 1) / items_per_page;
+        // Check if we're online or need to use offline mode
+        check_server_status(move |is_online| {
+            set_is_offline.set(!is_online);
 
-                set_pagination.update(|p| {
-                    p.total_pages = total_pages.max(1);
-                });
+            fetch_dreams(
+                &pagination,
+                &filters.search_query,
+                &filters.date_filter,
+                move |data, server_pagination| {
+                    // Set dreams data
+                    set_dreams.set(data);
 
-                set_dreams.set(data);
-                set_is_loading.set(false);
-            },
-            move |err_msg| {
-                set_error.set(Some(err_msg));
-                set_is_loading.set(false);
-            },
-        );
+                    // Update pagination with server data
+                    set_pagination.set(server_pagination);
+
+                    // Update loading state
+                    set_is_loading.set(false);
+                },
+                move |err_msg| {
+                    set_error.set(Some(err_msg));
+                    set_is_loading.set(false);
+                },
+            );
+        });
     });
 
     // Simplified load_dreams function that just triggers a refresh
@@ -76,6 +93,7 @@ pub fn JournalList() -> impl IntoView {
     // Check server status and retry loading
     let check_server = move || {
         check_server_status(move |is_online| {
+            set_is_offline.set(!is_online);
             if is_online {
                 load_dreams();
             } else {
@@ -112,16 +130,57 @@ pub fn JournalList() -> impl IntoView {
         check_server();
     });
 
+    // Handle category filter change
+    let handle_category_change = Callback::new(move |category: String| {
+        set_category_filter.set(category);
+        set_pagination.update(|p| {
+            p.current_page = 1; // Reset to first page when filtering
+        });
+        load_dreams();
+    });
+
+    // Handle tags filter change
+    let handle_tags_change = Callback::new(move |tags: Vec<String>| {
+        set_selected_tags.set(tags);
+        set_pagination.update(|p| {
+            p.current_page = 1; // Reset to first page when filtering
+        });
+        load_dreams();
+    });
+
+    // Handle favorites filter toggle
+    let handle_favorites_toggle = Callback::new(move |is_checked: bool| {
+        set_favorites_only.set(is_checked);
+        set_pagination.update(|p| {
+            p.current_page = 1; // Reset to first page when filtering
+        });
+        load_dreams();
+    });
+
     view! {
         <div class="container">
+            // Show offline indicator
+            <Show when=move || is_offline.get()>
+                <OfflineIndicator />
+            </Show>
+
             // Search and filters
             <JournalFilters
                 search_query=search_query
                 set_search_query=set_search_query
                 date_filter=date_filter
                 set_date_filter=set_date_filter
+                category_filter=category_filter
+                set_category_filter=set_category_filter
+                selected_tags=selected_tags
+                set_selected_tags=set_selected_tags
+                favorites_only=favorites_only
+                set_favorites_only=set_favorites_only
                 on_search=handle_search
                 on_refresh=handle_refresh
+                on_category_change=handle_category_change
+                on_tags_change=handle_tags_change
+                on_favorites_toggle=handle_favorites_toggle
             />
 
             // Content - Loading, Error, or Dreams
@@ -180,6 +239,11 @@ pub fn JournalList() -> impl IntoView {
             // Pagination controls
             <Show when=move || (pagination.get().total_pages > 1)>
                 <JournalPagination pagination=pagination on_page_change=handle_page_change />
+            </Show>
+
+            // Offline banner that appears at the bottom of the screen
+            <Show when=move || is_offline.get()>
+                <OfflineBanner retry_action=handle_retry />
             </Show>
         </div>
     }
