@@ -18,24 +18,27 @@ Dream Interpreter AI bridges the gap between your subconscious and conscious min
 
 ## ✨ Key Features
 
-### Core Functionality
+### Currently Implemented Features
 
 - **AI-Powered Interpretations**: Submit dreams and receive detailed symbolic analysis
-- **Personal Dream Journal**: Chronological history of dreams with search capabilities
-- **Rich Formatting**: Markdown support for dream content and interpretations
+- **Personal Dream Journal**: Store and browse your dream history
+- **Dream Search & Filtering**: Search by text, category, tags, date, and favorites
+- **Offline Support**: Dreams are saved to localStorage for offline access
+- **Rich UI Components**: Custom buttons, badges, and typography components
+- **Loading States**: Visual feedback during API interactions
+- **Error Handling**: Robust error handling for API failures
+- **Responsive Design**: Optimized for both mobile and desktop experiences
+- **Dark Mode**: Eye-friendly interface for bedtime dream recording
+- **Animations**: Subtle transitions and loading states
 
-### User Experience
+### Upcoming Features
 
-- **Responsive Design**: Seamless experience across mobile and desktop devices
-- **Dark Mode**: Eye-friendly interface optimized for bedtime dream recording
-- **Animations**: Subtle, elegant transitions and loading states
-- **Elegant Typography**: Carefully crafted text hierarchy for readability
-
-### Technical Features
-
-- **Offline Support**: Save dreams locally when offline (coming soon)
-- **Fast Performance**: WebAssembly-powered rendering for near-native speed
-- **Accessibility**: ARIA-compliant components for inclusive user experience
+- **User Authentication**: Login, registration, and profile management
+- **Symbol Library**: Comprehensive database of dream symbols and meanings
+- **Dream Analytics**: Visualize patterns and trends in your dream history
+- **Social Features**: Optional sharing of dreams and interpretations
+- **Advanced Filtering**: More sophisticated options for organizing dreams
+- **Mobile App**: Dedicated mobile experience with offline capabilities
 
 ## 🏗️ Application Architecture
 
@@ -45,8 +48,13 @@ Dream Interpreter AI bridges the gap between your subconscious and conscious min
 nexus-web/
 ├── src/
 │   ├── components/         # Reusable UI components
+│   │   ├── dream/          # Dream interpretation components
+│   │   ├── journal/        # Journal-related components
 │   │   ├── layout/         # Layout components (header, footer)
 │   │   ├── markdown/       # Markdown rendering components
+│   │   ├── buttons/        # Button component variations
+│   │   ├── badges/         # Badge component variations
+│   │   ├── feedback/       # Loading and error components
 │   │   └── typography/     # Typography components
 │   ├── pages/              # Page components mapped to routes
 │   │   ├── home.rs         # Landing page
@@ -55,8 +63,9 @@ nexus-web/
 │   │   ├── journal_entry.rs      # Individual dream detail
 │   │   └── *_test.rs       # Component test files
 │   └── lib.rs              # Main app entry point and routing
+├── styles/                 # CSS styling files
 ├── public/                 # Static assets
-└── .cursor/rules/          # Project documentation
+└── tests/                  # Integration tests
 ```
 
 ### Component Hierarchy
@@ -86,39 +95,25 @@ nexus-web/
 - **Local Component State**: Leptos signals for component-specific state
 - **Reactive Data Fetching**: Effects trigger API requests on parameter changes
 - **UI State Machine**: Loading → Error/Success states with appropriate feedback
+- **Offline Data**: LocalStorage for saving dreams when offline
 
 ## 🧪 Testing Strategy
 
 Tests are structured using WebAssembly-based testing through `wasm-bindgen-test`:
 
-- **Component Tests**: Test individual components in isolation
-- **State Tests**: Verify components handle loading/error/success states correctly
-- **Formatting Tests**: Ensure date formatting and Markdown processing work as expected
+- **Component Tests**: Test individual components in isolation (in progress)
+- **State Tests**: Verify components handle loading/error/success states correctly (in progress)
+- **Formatting Tests**: Ensure date formatting and Markdown processing work as expected (in progress)
 
 Each test file accompanies its respective component file with matching test patterns.
 
 ## 🖌️ Styling Architecture
 
-The project follows a modular CSS approach using CSS Modules with Stylance:
+The project uses a clean CSS approach with a focus on maintainability:
 
-```rust
-// Component with scoped styles
-use stylance::import_style;
-
-import_style!(style, "components/dream_card.module.css");
-
-#[component]
-fn DreamCard(dream: Dream) -> impl IntoView {
-    view! {
-        <div class=style::card>
-            <h3 class=style::title>{dream.title}</h3>
-        </div>
-    }
-}
-```
-
-- **Global Variables**: Consistent theme colors, spacing, and typography
-- **Component Scoping**: Styles isolated to their components
+- **Global Variables**: Consistent theme colors, spacing, and typography defined in variables.css
+- **Component Styles**: Organized by component type in components.css
+- **Layout System**: Flexbox and grid-based responsive layout in layout.css
 - **Animation System**: Consistent slide/fade animations with delay classes
 - **Responsive Utilities**: Mobile-first design with adaptive layouts
 
@@ -139,17 +134,16 @@ cd dream-interpreter
 
 # Install Rust dependencies
 cargo install trunk
-cargo install stylance-cli
 
 # Install Node.js dependencies (optional)
-npm install
+pnpm install
 ```
 
 ### Development
 
 ```bash
 # Start the development server
-npm run dev
+pnpm run dev
 # OR directly with Trunk
 trunk serve
 ```
@@ -159,7 +153,7 @@ The application will be available at `http://localhost:8080`.
 ### Building for Production
 
 ```bash
-npm run build
+pnpm run build
 # OR
 trunk build --release
 ```
