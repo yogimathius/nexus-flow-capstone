@@ -6,10 +6,14 @@ Nexus Core is a powerful backend service for dream interpretation and analysis, 
 
 - **Dream Interpretation API**: Submit dream text and receive AI-powered interpretations
 - **Dream Storage**: Save, retrieve, and list interpreted dreams in a PostgreSQL database
+- **Dream Tagging**: Add and remove tags to categorize dreams
+- **Dream Search**: Search dreams by text content or filter by tags
+- **Pagination and Sorting**: Flexible listing with pagination and custom sort orders
 - **Model Context Protocol (MCP)**: Optional integration with MCP for enhanced symbol analysis
 - **Multiple AI Providers**: Support for OpenRouter and GitHub/Azure AI APIs
 - **RESTful API Design**: Clean API endpoints with proper error handling
 - **Docker Support**: Easy containerization for deployment
+- **CORS Configuration**: Pre-configured for local development
 
 ## Getting Started
 
@@ -17,7 +21,8 @@ Nexus Core is a powerful backend service for dream interpretation and analysis, 
 
 - Rust and Cargo (latest stable or nightly)
 - PostgreSQL database
-- OpenRouter API key
+- OpenRouter API key (obtain from [OpenRouter.ai](https://openrouter.ai))
+- GitHub token (optional, for Azure AI API access)
 
 ### Optional Components
 
@@ -32,7 +37,7 @@ Create a `.env` file in the project root with the following variables:
 ```
 DATABASE_URL=postgresql://username:password@localhost:5432/nexus_core
 OPENROUTER_API_KEY=your_openrouter_api_key
-GITHUB_TOKEN=your_github_token (optional)
+GITHUB_TOKEN=your_github_token (optional, for Azure AI API)
 PORT=3003 (optional, defaults to 3003)
 ENABLE_MCP=true (optional, defaults to true)
 MCP_SERVER_URL=http://localhost:3002/sse (optional)
@@ -70,6 +75,7 @@ docker run -p 8080:8080 \
   - Interprets a dream using AI
   - Request: `{ "dream_text": "I was flying over mountains", "save": true }`
   - Response: `{ "interpretation": "...", "status": "success", "id": "uuid" }`
+  - The `save` parameter is optional and defaults to false
 
 ### Dream Management
 
@@ -81,18 +87,68 @@ docker run -p 8080:8080 \
 
 - **GET /api/dreams**
 
-  - Lists all saved dreams
-  - Response: Array of dream objects
+  - Lists all saved dreams with pagination and sorting
+  - Query parameters:
+    - `page`: Page number (default: 1)
+    - `limit`: Items per page (default: 10, max: 100)
+    - `sort_field`: Field to sort by (`created_at`, `text`, etc.)
+    - `sort_order`: `asc` or `desc` (default: `desc`)
+    - `tag`: Filter by specific tag
+  - Response: Array of dream objects with pagination metadata
+
+- **GET /api/dreams/search**
+
+  - Search for dreams by text content
+  - Query parameters:
+    - `search`: Text to search for
+    - (All pagination parameters from /api/dreams endpoint)
+  - Response: Array of matching dream objects with pagination metadata
 
 - **GET /api/dreams/{id}**
   - Retrieves a specific dream by ID
   - Response: Dream object or 404 error
+
+### Dream Tags
+
+- **POST /api/dreams/{id}/tags**
+
+  - Adds a tag to a dream
+  - Request: `{ "tag": "lucid" }`
+  - Response: `{ "status": "success" }`
+
+- **DELETE /api/dreams/{id}/tags/{tag}**
+  - Removes a tag from a dream
+  - Response: `{ "status": "success" }`
 
 ### Health Check
 
 - **GET /health**
   - Simple health check endpoint
   - Response: `"OK"`
+
+## API Response Format
+
+All API responses follow a consistent format:
+
+### Success Response
+
+```json
+{
+  "status": "success",
+  ... (response data)
+}
+```
+
+### Error Response
+
+```json
+{
+  "status": "error",
+  "message": "Error description",
+  "code": "ERROR_CODE",
+  "details": {} (optional)
+}
+```
 
 ## Architecture
 
@@ -145,6 +201,27 @@ A test script is provided for quick API testing:
 ```bash
 ./test_api.sh
 ```
+
+For more comprehensive API tests:
+
+```bash
+./curl_tests.sh
+```
+
+## Deployment
+
+### Fly.io
+
+A `fly.toml` configuration is included for deployment to Fly.io.
+
+```bash
+fly deploy
+```
+
+## Where to Get API Keys
+
+- **OpenRouter API Key**: Register at [OpenRouter.ai](https://openrouter.ai) to get an API key
+- **GitHub Token**: Create a personal access token in your GitHub account settings
 
 ## License
 
