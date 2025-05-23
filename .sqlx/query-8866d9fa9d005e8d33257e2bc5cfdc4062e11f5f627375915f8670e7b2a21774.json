@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT id, text, interpretation, created_at\n            FROM dreams\n            WHERE id = $1\n            ",
+  "query": "\n            SELECT d.id, d.text, d.interpretation, d.created_at,\n                   array_agg(dt.tag) FILTER (WHERE dt.tag IS NOT NULL) as tags\n            FROM dreams d\n            LEFT JOIN dream_tags dt ON d.id = dt.dream_id\n            GROUP BY d.id\n            ORDER BY d.created_at DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -22,19 +22,23 @@
         "ordinal": 3,
         "name": "created_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "tags",
+        "type_info": "TextArray"
       }
     ],
     "parameters": {
-      "Left": [
-        "Uuid"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
       false,
       false,
-      true
+      true,
+      null
     ]
   },
-  "hash": "d061cf161f2652d39032a6372e4f591652b5a896fc9db02694f807eefbe93176"
+  "hash": "8866d9fa9d005e8d33257e2bc5cfdc4062e11f5f627375915f8670e7b2a21774"
 }

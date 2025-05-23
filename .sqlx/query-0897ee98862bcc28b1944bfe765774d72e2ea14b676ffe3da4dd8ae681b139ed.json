@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM dream_tags\n            WHERE dream_id = $1 AND tag = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0897ee98862bcc28b1944bfe765774d72e2ea14b676ffe3da4dd8ae681b139ed"
+}
