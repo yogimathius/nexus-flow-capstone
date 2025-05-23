@@ -103,13 +103,6 @@ impl Server {
             }
         };
 
-        info!("Running database migrations...");
-        if let Err(e) = db::migrate::run_migrations(&db_pool).await {
-            tracing::error!("Migration error: {}", e);
-            return;
-        }
-        info!("Migrations complete!");
-
         let mut app_state = AppState::new(db_pool, config.openrouter_api_key, config.github_token);
 
         if config.enable_mcp {
