@@ -26,6 +26,10 @@ inject_scripts = true
 # An optional cargo profile to use
 # cargo_profile = "release-trunk"
 
+# Environment variables to pass to the build
+[build.env]
+API_URL = { from_env = "API_URL" }
+
 # Add wasm-bindgen specific options
 [tools.wasm-bindgen]
 version = "0.2.100"
