@@ -134,7 +134,7 @@ impl OpenRouterClient {
             .client
             .post("https://openrouter.ai/api/v1/chat/completions")
             .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("HTTP-Referer", "https://localhost:3000") // Required by OpenRouter
+            .header("HTTP-Referer", "https://localhost:8080") // Required by OpenRouter
             .header("X-Title", "Dream Interpreter") // Required by OpenRouter
             .json(&request_body)
             .send()
@@ -602,19 +602,19 @@ Replace `your_api_key_here` with your actual OpenRouter API key.
    cargo run
    ```
 
-4. The server will start on port 3000, showing available endpoints.
+4. The server will start on port 8080, showing available endpoints.
 
 5. Test the text processing endpoint:
 
    ```bash
-   curl -X POST http://localhost:3000/api/process_text \
+   curl -X POST http://localhost:8080/api/process_text \
      -H "Content-Type: application/json" \
      -d '{"text": "this is a sample text. it needs formatting!", "operation": "format"}'
    ```
 
 6. Test the dream interpretation endpoint:
    ```bash
-   curl -v -X POST http://localhost:3000/api/interpret_dream \
+   curl -v POST https://nexus-core.fly.dev/api/interpret_dream \
      -H "Content-Type: application/json" \
      -d '{"dream_text": "I was flying over a city made of crystal."}'
    ```
