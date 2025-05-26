@@ -1,5 +1,5 @@
 use crate::error::{AppError, AppResult};
-use crate::services::ai::providers::GitHubProvider;
+use crate::services::ai::providers::{GitHubProvider, OpenRouterProvider};
 use crate::services::ai::traits::AiProvider;
 use crate::services::mcp::McpClientTrait;
 use crate::services::mcp::types::SymbolMeaning;
@@ -11,6 +11,7 @@ use super::AiClientTrait;
 
 #[derive(Clone)]
 pub struct AiClient {
+    openrouter_provider: Option<OpenRouterProvider>,
     github_provider: Option<GitHubProvider>,
     mcp_client: Option<Arc<dyn McpClientTrait>>,
 }
@@ -33,6 +34,36 @@ impl AiClient {
         };
 
         AiClient {
+            openrouter_provider: None,
+            github_provider,
+            mcp_client: None,
+        }
+    }
+
+    pub fn new_with_openrouter(openrouter_api_key: String, github_token: Option<String>) -> Self {
+        let openrouter_provider = if !openrouter_api_key.is_empty()
+            && openrouter_api_key != "your-openrouter-api-key-here"
+        {
+            Some(OpenRouterProvider::new(openrouter_api_key))
+        } else {
+            None
+        };
+
+        let github_provider = if let Some(token) = github_token {
+            if token.starts_with("test_") || token == "dummy_key" {
+                debug!("Creating a mock GitHub provider for testing");
+                Some(GitHubProvider::new(token))
+            } else if !token.is_empty() {
+                Some(GitHubProvider::new(token))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        AiClient {
+            openrouter_provider,
             github_provider,
             mcp_client: None,
         }
@@ -48,7 +79,7 @@ impl AiClient {
     }
 
     pub async fn request_dream_interpretation(&self, dream_text: &str) -> AppResult<String> {
-        // Try to get the provider
+        // Try to get the provider (prefer OpenRouter, fallback to GitHub)
         let provider = match self.get_provider() {
             Ok(provider) => provider,
             Err(_) => {
@@ -67,20 +98,26 @@ impl AiClient {
             Err(e) => {
                 // Log the error
                 warn!("AI provider error: {}", e);
-                
+
                 // Return a friendly message for any API errors
                 Ok("I apologize, but I'm unable to interpret your dream at the moment due to a technical issue. Please try again later.".to_string())
             }
         }
     }
 
-    fn get_provider(&self) -> AppResult<&GitHubProvider> {
+    fn get_provider(&self) -> AppResult<&dyn AiProvider> {
+        // Prefer OpenRouter provider if available
+        if let Some(provider) = &self.openrouter_provider {
+            return Ok(provider as &dyn AiProvider);
+        }
+
+        // Fallback to GitHub provider
         match &self.github_provider {
             Some(provider) => {
                 // If we're in test mode with a test token, just return the provider even though
                 // it wouldn't normally be used for real API calls
                 if self.is_test_mode() {
-                    return Ok(provider);
+                    return Ok(provider as &dyn AiProvider);
                 }
 
                 // For real API calls, make sure the token is valid
@@ -92,12 +129,12 @@ impl AiClient {
                     ));
                 }
 
-                Ok(provider)
+                Ok(provider as &dyn AiProvider)
             }
             None => {
                 error!("No AI provider configured for dream interpretation");
                 Err(AppError::ApplicationError(
-                    "No AI provider configured. Ensure GitHub token is properly configured.".into(),
+                    "No AI provider configured. Ensure OpenRouter API key or GitHub token is properly configured.".into(),
                 ))
             }
         }
