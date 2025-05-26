@@ -41,7 +41,6 @@ pub struct CreateDreamResponse {
     pub status: String,
 }
 
-/// Standard response format for all API endpoints
 #[derive(Serialize)]
 pub struct ApiErrorResponse {
     pub status: String,
@@ -169,38 +168,31 @@ pub struct DreamQuery {
 }
 
 impl DreamQuery {
-    // Default page size if not specified
     pub fn get_limit(&self) -> u32 {
-        self.limit.unwrap_or(10).min(100) // Maximum of 100 items per page
+        self.limit.unwrap_or(10).min(100)
     }
 
-    // Get the page number (0-based for database offset calculations)
     pub fn get_page(&self) -> u32 {
-        self.page.unwrap_or(1).max(1) - 1 // Ensure page is at least 1, then convert to 0-based
+        self.page.unwrap_or(1).max(1) - 1
     }
 
-    // Calculate the offset for SQL queries
     pub fn get_offset(&self) -> u32 {
         self.get_page() * self.get_limit()
     }
 
-    // Get the sort field or default to created_at
     pub fn get_sort_field(&self) -> SortField {
         self.sort_field.unwrap_or_default()
     }
 
-    // Get the sort order or default to descending
     pub fn get_sort_order(&self) -> SortOrder {
         self.sort_order.unwrap_or_default()
     }
 }
 
-// Handler for interpreting dreams through AI
 pub async fn interpret_dream_handler(
     State(state): State<AppState>,
     json_result: Result<Json<DreamRequest>, JsonRejection>,
 ) -> impl IntoResponse {
-    // Use the JSON extraction helper to handle JSON errors
     let Json(payload) = match handle_json_extraction(json_result).await {
         Ok(json) => json,
         Err(validation_response) => return validation_response.into_response(),
@@ -208,7 +200,6 @@ pub async fn interpret_dream_handler(
 
     info!("Interpreting dream: {}", payload.dream_text);
 
-    // Validate the dream text using the validation helper
     let mut validation_errors = Vec::new();
     if let Some(err) = validate_string_field("dream_text", &payload.dream_text, 1, Some(10000)) {
         validation_errors.push(err);
@@ -229,7 +220,6 @@ pub async fn interpret_dream_handler(
         .await
     {
         Ok(interpretation) => {
-            // If save is true, save the dream to the database
             let dream_id = if payload.save {
                 match Dream::create(&state.db_pool, &payload.dream_text, &interpretation).await {
                     Ok(id) => {
@@ -260,18 +250,15 @@ pub async fn interpret_dream_handler(
     }
 }
 
-// Handler for creating a new dream in the database
 pub async fn create_dream_handler(
     State(state): State<AppState>,
     json_result: Result<Json<CreateDreamRequest>, JsonRejection>,
 ) -> impl IntoResponse {
-    // Use the JSON extraction helper to handle JSON errors
     let Json(payload) = match handle_json_extraction(json_result).await {
         Ok(json) => json,
         Err(validation_response) => return validation_response.into_response(),
     };
 
-    // Validate request using validation helpers
     let mut validation_errors = Vec::new();
 
     if let Some(err) = validate_string_field("text", &payload.text, 1, Some(10000)) {
@@ -307,7 +294,6 @@ pub async fn create_dream_handler(
     }
 }
 
-// Handler for listing all dreams with pagination, filtering, and sorting
 pub async fn list_dreams_handler(
     State(state): State<AppState>,
     Query(params): Query<DreamQuery>,
@@ -315,14 +301,11 @@ pub async fn list_dreams_handler(
     let limit = params.get_limit();
     let offset = params.get_offset();
 
-    // Get sort parameters from query
     let sort_field = params.get_sort_field();
     let sort_order = params.get_sort_order();
 
-    // Get tag filter from query params
     let tag_filter = params.tag.as_deref();
 
-    // Get search text from query params
     let search_text = params.search.as_deref();
 
     match Dream::list_paginated(
@@ -345,7 +328,6 @@ pub async fn list_dreams_handler(
     }
 }
 
-// Handler for getting a specific dream by ID
 pub async fn get_dream_handler(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
@@ -375,13 +357,11 @@ pub async fn add_tag_handler(
     Path(id): Path<Uuid>,
     json_result: Result<Json<TagRequest>, JsonRejection>,
 ) -> impl IntoResponse {
-    // Extract and validate the tag request
     let Json(payload) = match handle_json_extraction(json_result).await {
         Ok(json) => json,
         Err(validation_response) => return validation_response.into_response(),
     };
 
-    // Validate the tag string
     let mut validation_errors = Vec::new();
     if let Some(err) = validate_string_field("tag", &payload.tag, 1, Some(50)) {
         validation_errors.push(err);
@@ -396,26 +376,22 @@ pub async fn add_tag_handler(
         .into_response();
     }
 
-    // First check if the dream exists
     match Dream::get_by_id(&state.db_pool, id).await {
-        Ok(Some(_)) => {
-            // Dream exists, proceed with adding the tag
-            match Dream::add_tag(&state.db_pool, id, &payload.tag).await {
-                Ok(_) => (
-                    StatusCode::OK,
-                    Json(serde_json::json!({
-                        "status": "success",
-                        "message": format!("Tag '{}' added to dream", payload.tag)
-                    })),
-                )
-                    .into_response(),
-                Err(e) => {
-                    error!("Error adding tag: {:?}", e);
-                    let (status, response) = app_error_to_response(AppError::DatabaseError(e));
-                    (status, Json(response)).into_response()
-                }
+        Ok(Some(_)) => match Dream::add_tag(&state.db_pool, id, &payload.tag).await {
+            Ok(_) => (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "status": "success",
+                    "message": format!("Tag '{}' added to dream", payload.tag)
+                })),
+            )
+                .into_response(),
+            Err(e) => {
+                error!("Error adding tag: {:?}", e);
+                let (status, response) = app_error_to_response(AppError::DatabaseError(e));
+                (status, Json(response)).into_response()
             }
-        }
+        },
         Ok(None) => {
             let (status, response) = not_found_response("Dream", &id.to_string());
             (status, Json(response)).into_response()
@@ -428,31 +404,26 @@ pub async fn add_tag_handler(
     }
 }
 
-// Handler for removing a tag from a dream
 pub async fn remove_tag_handler(
     State(state): State<AppState>,
     Path((id, tag)): Path<(Uuid, String)>,
 ) -> impl IntoResponse {
-    // First check if the dream exists
     match Dream::get_by_id(&state.db_pool, id).await {
-        Ok(Some(_)) => {
-            // Dream exists, proceed with removing the tag
-            match Dream::remove_tag(&state.db_pool, id, &tag).await {
-                Ok(_) => (
-                    StatusCode::OK,
-                    Json(serde_json::json!({
-                        "status": "success",
-                        "message": format!("Tag '{}' removed from dream", tag)
-                    })),
-                )
-                    .into_response(),
-                Err(e) => {
-                    error!("Error removing tag: {:?}", e);
-                    let (status, response) = app_error_to_response(AppError::DatabaseError(e));
-                    (status, Json(response)).into_response()
-                }
+        Ok(Some(_)) => match Dream::remove_tag(&state.db_pool, id, &tag).await {
+            Ok(_) => (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "status": "success",
+                    "message": format!("Tag '{}' removed from dream", tag)
+                })),
+            )
+                .into_response(),
+            Err(e) => {
+                error!("Error removing tag: {:?}", e);
+                let (status, response) = app_error_to_response(AppError::DatabaseError(e));
+                (status, Json(response)).into_response()
             }
-        }
+        },
         Ok(None) => {
             let (status, response) = not_found_response("Dream", &id.to_string());
             (status, Json(response)).into_response()
@@ -465,12 +436,10 @@ pub async fn remove_tag_handler(
     }
 }
 
-// Handler for searching dreams
 pub async fn search_dreams_handler(
     State(state): State<AppState>,
     Query(params): Query<DreamQuery>,
 ) -> impl IntoResponse {
-    // Check for search term
     let search_text = match &params.search {
         Some(text) if !text.is_empty() => text.as_str(),
         _ => {
@@ -487,14 +456,12 @@ pub async fn search_dreams_handler(
         }
     };
 
-    // Get pagination and filtering parameters
     let limit = params.get_limit();
     let offset = params.get_offset();
     let sort_field = params.get_sort_field();
     let sort_order = params.get_sort_order();
     let tag_filter = params.tag.as_deref();
 
-    // Use the specialized search method
     match Dream::search(
         &state.db_pool,
         search_text,
