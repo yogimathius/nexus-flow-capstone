@@ -25,8 +25,11 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(db_pool: PgPool, _api_key: String, github_token: Option<String>) -> Self {
-        let ai_client = Arc::new(Box::new(AiClient::new(github_token)) as Box<dyn AiClientTrait>);
+    pub fn new(db_pool: PgPool, api_key: String, github_token: Option<String>) -> Self {
+        let ai_client = Arc::new(
+            Box::new(AiClient::new_with_openrouter(api_key, github_token))
+                as Box<dyn AiClientTrait>,
+        );
 
         AppState { db_pool, ai_client }
     }
