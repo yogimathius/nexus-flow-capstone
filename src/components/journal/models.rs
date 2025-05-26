@@ -2,17 +2,17 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Dream {
-    pub id: String, // Keep as String for frontend to handle UUID
+    pub id: String,
     pub text: String,
     pub interpretation: String,
     #[serde(rename = "created_at")]
-    pub created_at: String, // ISO 8601 date string
+    pub created_at: String,
     #[serde(default)]
-    pub category: Option<String>, // Dream category
+    pub category: Option<String>,
     #[serde(default)]
-    pub tags: Vec<String>, // Optional tags
+    pub tags: Vec<String>,
     #[serde(default)]
-    pub is_favorite: bool, // Whether the dream is marked as favorite
+    pub is_favorite: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -22,7 +22,6 @@ pub struct Pagination {
     pub items_per_page: usize,
 }
 
-// Search filters for dreams
 #[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq)]
 pub struct DreamSearchFilters {
     pub search_query: String,

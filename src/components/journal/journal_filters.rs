@@ -19,17 +19,14 @@ fn use_debounce(callback: Callback<String>, ms: u32) -> Callback<String> {
     let (timer_id, set_timer_id) = signal(None::<i32>);
 
     Callback::new(move |value: String| {
-        // Clear previous timer if it exists
         if let Some(id) = timer_id.get() {
             let window = web_sys::window().unwrap();
             window.clear_timeout_with_handle(id);
         }
 
-        // Clone value and callback for the closure
         let value_clone = value.clone();
         let callback_clone = callback.clone();
 
-        // Set a new timer
         let window = web_sys::window().unwrap();
         let closure = Closure::wrap(Box::new(move || {
             callback_clone.run(value_clone.clone());
@@ -42,7 +39,6 @@ fn use_debounce(callback: Callback<String>, ms: u32) -> Callback<String> {
             )
             .unwrap();
 
-        // Need to forget the closure to keep it alive
         closure.forget();
 
         set_timer_id.set(Some(new_timer_id));
@@ -67,15 +63,12 @@ pub fn JournalFilters(
     #[prop(into, optional)] on_tags_change: Option<Callback<Vec<String>>>,
     #[prop(into, optional)] on_favorites_toggle: Option<Callback<bool>>,
 ) -> impl IntoView {
-    // Create refs for the input elements
     let search_input_ref = NodeRef::<Input>::new();
 
-    // Default signals for optional props
     let (local_category_filter, local_set_category_filter) = signal("All Categories".to_string());
     let (local_selected_tags, local_set_selected_tags) = signal(Vec::<String>::new());
     let (local_favorites_only, local_set_favorites_only) = signal(false);
 
-    // Use provided signals or locals
     let category_filter =
         category_filter.unwrap_or_else(|| Signal::derive(move || local_category_filter.get()));
     let set_category_filter = set_category_filter.unwrap_or(local_set_category_filter);
@@ -88,30 +81,24 @@ pub fn JournalFilters(
         favorites_only.unwrap_or_else(|| Signal::derive(move || local_favorites_only.get()));
     let set_favorites_only = set_favorites_only.unwrap_or(local_set_favorites_only);
 
-    // New tag input
     let (tag_input, set_tag_input) = signal(String::new());
 
-    // Advanced search mode
     let (advanced_mode, set_advanced_mode) = signal(false);
 
-    // Create a debounced search handler
     let debounced_search = use_debounce(
         Callback::new(move |value: String| {
             set_search_query.set(value);
-            // Trigger search after debounce
             let ev = web_sys::SubmitEvent::new("submit").unwrap();
             on_search.run(ev);
         }),
         500, // 500ms debounce delay
     );
 
-    // Handle input with debounce
     let handle_search_input = move |ev: Event| {
         let value = event_target_value(&ev);
         debounced_search.run(value);
     };
 
-    // Handle adding a tag
     let add_tag = move |ev: KeyboardEvent| {
         if ev.key() == "Enter" {
             ev.prevent_default();
@@ -123,7 +110,6 @@ pub fn JournalFilters(
                 });
                 set_tag_input.set("".to_string());
 
-                // Notify parent component if callback exists
                 if let Some(callback) = on_tags_change.as_ref() {
                     callback.run(selected_tags.get());
                 }
@@ -131,24 +117,20 @@ pub fn JournalFilters(
         }
     };
 
-    // Handle removing a tag
     let remove_tag = move |tag: String| {
         set_selected_tags.update(|tags| {
             tags.retain(|t| t != &tag);
         });
 
-        // Notify parent component if callback exists
         if let Some(callback) = on_tags_change.as_ref() {
             callback.run(selected_tags.get());
         }
     };
 
-    // Toggle advanced search mode
     let toggle_advanced_mode = move |_: MouseEvent| {
         set_advanced_mode.update(|mode| *mode = !*mode);
     };
 
-    // Clear all filters
     let clear_filters = move |_: MouseEvent| {
         set_search_query.set("".to_string());
         set_date_filter.set("".to_string());
@@ -156,12 +138,10 @@ pub fn JournalFilters(
         set_selected_tags.set(Vec::new());
         set_favorites_only.set(false);
 
-        // Reset input field
         if let Some(input) = search_input_ref.get() {
             input.set_value("");
         }
 
-        // Notify parent components if callbacks exist
         if let Some(callback) = on_category_change.as_ref() {
             callback.run("All Categories".to_string());
         }
@@ -174,11 +154,9 @@ pub fn JournalFilters(
             callback.run(false);
         }
 
-        // Refresh the list
         on_refresh.run(());
     };
 
-    // Handle category change
     let handle_category_select = move |ev: Event| {
         let value = event_target_value(&ev);
         set_category_filter.set(value.clone());
@@ -190,7 +168,6 @@ pub fn JournalFilters(
         }
     };
 
-    // Handle favorites toggle
     let handle_favorites = move |ev: Event| {
         let checked = event_target_checked(&ev);
         set_favorites_only.set(checked);

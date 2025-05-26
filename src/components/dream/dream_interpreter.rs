@@ -14,10 +14,8 @@ pub fn DreamInterpreter() -> impl IntoView {
     let (auto_save, set_auto_save) = signal(true);
     let (saved_dream_id, set_saved_dream_id) = signal(Option::<String>::None);
 
-    // Calculate if the result should be visible
     let show_result = move || interpretation.get().is_some();
 
-    // Update button state based on form state
     Effect::new(move |_| {
         let text = dream_text.get();
         let loading = is_loading.get();
@@ -50,9 +48,7 @@ pub fn DreamInterpreter() -> impl IntoView {
         <div class="dream-interpreter-container fade-in" role="main" aria-live="polite">
             <h1 class="visually-hidden">Dream Interpreter</h1>
 
-            // Two-column layout on larger screens
             <div class="dream-form-layout">
-                // Dream form column
                 <div class="dream-form" role="form" aria-labelledby="dream-form-heading">
                     <h2 id="dream-form-heading" class="visually-hidden">
                         Dream Description Form
@@ -73,7 +69,6 @@ pub fn DreamInterpreter() -> impl IntoView {
                     />
                 </div>
 
-                // Common themes column
                 <div class="dream-themes" role="region" aria-labelledby="themes-heading">
                     <h2 id="themes-heading" class="visually-hidden">
                         Common Dream Themes
@@ -82,7 +77,6 @@ pub fn DreamInterpreter() -> impl IntoView {
                 </div>
             </div>
 
-            // Loading indicator (visible only during loading)
             <Show when=move || is_loading.get() fallback=|| ()>
                 <div
                     class="loading-container"
@@ -96,7 +90,6 @@ pub fn DreamInterpreter() -> impl IntoView {
                 </div>
             </Show>
 
-            // Interpretation results (full width)
             <div
                 class="dream-interpretation"
                 id=interpretation_id

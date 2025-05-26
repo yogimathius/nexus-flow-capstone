@@ -7,7 +7,6 @@ pub fn JournalCard(
     #[prop(into)] dream: Dream,
     #[prop(into)] animation_delay: String,
 ) -> impl IntoView {
-    // Format date from ISO string to readable format
     let format_date = |date_str: &str| -> String {
         if let Ok(date) = chrono::DateTime::parse_from_rfc3339(date_str) {
             date.format("%B %d, %Y").to_string()
@@ -16,7 +15,6 @@ pub fn JournalCard(
         }
     };
 
-    // Format time from ISO string
     let format_time = |date_str: &str| -> String {
         if let Ok(date) = chrono::DateTime::parse_from_rfc3339(date_str) {
             date.format("%H:%M").to_string()
@@ -25,7 +23,6 @@ pub fn JournalCard(
         }
     };
 
-    // Truncate text to a specified length
     let truncate = |text: &str, max_len: usize| -> String {
         if text.len() <= max_len {
             text.to_string()
@@ -34,9 +31,7 @@ pub fn JournalCard(
         }
     };
 
-    // Clean interpretation preview (extract first paragraph without markdown)
     let clean_interpretation_preview = |text: &str, max_len: usize| -> String {
-        // Remove markdown and HTML tags for cleaner preview
         let text = render_markdown(text);
         let text = text
             .replace(r#"<h3 class="md-heading">"#, "")
@@ -49,7 +44,6 @@ pub fn JournalCard(
             .replace("</em>", "")
             .replace("<br/>", " ");
 
-        // Truncate if needed
         if text.len() <= max_len {
             text
         } else {
@@ -61,16 +55,11 @@ pub fn JournalCard(
     let time = format_time(&dream.created_at);
     let clean_interp = clean_interpretation_preview(&dream.interpretation, 120);
 
-    // Create a signal for tracking favorite status
     let (is_favorite, set_is_favorite) = signal(dream.is_favorite);
 
-    // Create a signal for tags to prevent the move issue
     let (dream_tags, _) = signal(dream.tags.clone());
 
-    // Toggle favorite status
     let toggle_favorite = move |_| {
-        // Here we would normally update the server state
-        // For now, we just toggle the local state
         set_is_favorite.update(|f| *f = !*f);
     };
 
@@ -80,7 +69,6 @@ pub fn JournalCard(
                 <div class="dream-card-badges">
                     <span class="badge dream">"Dream"</span>
 
-                    // Show category if available
                     {dream
                         .category
                         .clone()
@@ -94,7 +82,6 @@ pub fn JournalCard(
                     <div class="dream-time">{time}</div>
                 </div>
 
-                // Favorite button
                 <button
                     type="button"
                     class=move || {
@@ -126,7 +113,6 @@ pub fn JournalCard(
             <h3 class="dream-title">{truncate(&dream.text, 60)}</h3>
             <p class="dream-interpretation">{clean_interp}</p>
 
-            // Tags
             <Show when=move || !dream_tags.get().is_empty()>
                 <div class="dream-tags">
                     {move || {

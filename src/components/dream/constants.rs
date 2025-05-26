@@ -1,4 +1,3 @@
-// Dream interpretation tips
 pub const DREAM_TIPS: &[&str] = &[
     "Record your dreams immediately upon waking for the most accurate recall.",
     "Keep a dream journal by your bed to capture details before they fade.",
@@ -10,7 +9,6 @@ pub const DREAM_TIPS: &[&str] = &[
     "Some dreams may be metaphorical rather than literal - look for deeper meanings.",
 ];
 
-// Common dream themes
 pub const COMMON_DREAM_THEMES: &[&str] = &[
     "Flying",
     "Transcending dimensions",
@@ -35,7 +33,6 @@ pub const COMMON_DREAM_THEMES: &[&str] = &[
     "Phoenix transformation",
 ];
 
-// Theme sentence templates
 pub fn get_theme_sentence(theme: &str) -> &'static str {
     match theme {
         "Flying" => "I was soaring through luminous clouds, merging with the infinite sky.",
