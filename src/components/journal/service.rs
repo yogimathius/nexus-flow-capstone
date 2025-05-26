@@ -6,9 +6,15 @@ use wasm_bindgen_futures::spawn_local;
 
 const STORAGE_KEY: &str = "nexus_flow_dreams";
 
-// Get API URL based on current host
+// Get API URL from environment or fallback to default
 pub fn get_api_url() -> String {
-    // Try checking if we're running on localhost or IP
+    // First try to get from compile-time environment variable
+    if let Some(api_url) = option_env!("API_URL") {
+        log!("Using API_URL from environment: {}", api_url);
+        return format!("{}/dreams", api_url);
+    }
+    
+    // Fallback to runtime detection
     let host = if web_sys::window()
         .unwrap()
         .location()
@@ -19,26 +25,37 @@ pub fn get_api_url() -> String {
     } else {
         "localhost"
     };
-    format!("http://{}:8080/api/dreams", host)
+    let fallback_url = format!("http://{}:8080/api/dreams", host);
+    log!("Using fallback API URL: {}", fallback_url);
+    fallback_url
+}
+
+// Get base API URL for health checks
+pub fn get_base_api_url() -> String {
+    // First try to get from compile-time environment variable
+    if let Some(api_url) = option_env!("API_URL") {
+        return api_url.to_string();
+    }
+    
+    // Fallback to runtime detection
+    let host = if web_sys::window()
+        .unwrap()
+        .location()
+        .hostname()
+        .unwrap_or_default() == "127.0.0.1"
+    {
+        "127.0.0.1"
+    } else {
+        "localhost"
+    };
+    format!("http://{}:8080/api", host)
 }
 
 // Check if server is running
 pub fn check_server_status(
     callback: impl Fn(bool) + 'static,
 ) {
-    let health_url = format!(
-        "http://{}:8080/health",
-        if web_sys::window()
-            .unwrap()
-            .location()
-            .hostname()
-            .unwrap_or_default() == "127.0.0.1"
-        {
-            "127.0.0.1"
-        } else {
-            "localhost"
-        }
-    );
+    let health_url = format!("{}/health", get_base_api_url());
 
     spawn_local(async move {
         match reqwest::Client::builder().build() {

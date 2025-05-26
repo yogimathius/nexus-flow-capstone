@@ -4,7 +4,17 @@ use reqwest::Client;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
-const API_URL: &str = "http://localhost:8080/api/interpret_dream";
+// Get API URL from environment or fallback to default
+fn get_api_url() -> String {
+    // First try to get from compile-time environment variable
+    if let Some(api_url) = option_env!("API_URL") {
+        return format!("{}/interpret_dream", api_url);
+    }
+    
+    // Fallback to production URL
+    "https://nexus-core.fly.dev/api/interpret_dream".to_string()
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 const REQUEST_TIMEOUT: u64 = 30; // seconds
 
@@ -17,7 +27,7 @@ pub async fn interpret_dream(dream_text: String, save: bool) -> Result<DreamResp
     let client = Client::new();
     
     // Build the request with conditional timeout for non-WASM targets
-    let request_builder = client.post(API_URL);
+    let request_builder = client.post(&get_api_url());
     
     // Apply timeout only for non-WASM targets
     #[cfg(not(target_arch = "wasm32"))]

@@ -3,6 +3,14 @@ use leptos::prelude::*;
 use reqwest::Client;
 use wasm_bindgen_futures::spawn_local;
 
+fn get_api_url() -> String {
+    if let Some(api_url) = option_env!("API_URL") {
+        return api_url.to_string();
+    }
+    
+    "https://nexus-core.fly.dev/api".to_string()
+}
+
 #[derive(Clone)]
 pub struct DreamState {
     pub dream: Signal<Option<Dream>>,
@@ -12,12 +20,10 @@ pub struct DreamState {
 }
 
 pub fn use_dream_data(dream_id: String) -> DreamState {
-    // State
     let (dream, set_dream) = signal(Option::<Dream>::None);
     let (is_loading, set_is_loading) = signal(true);
     let (error, set_error) = signal(Option::<String>::None);
 
-    // Format date from ISO string to readable format
     let format_date = |date_str: &str| -> String {
         if let Ok(date) = chrono::DateTime::parse_from_rfc3339(date_str) {
             date.format("%B %d, %Y at %H:%M").to_string()
@@ -26,12 +32,11 @@ pub fn use_dream_data(dream_id: String) -> DreamState {
         }
     };
 
-    // Load dream by ID
     if dream_id.is_empty() {
         set_error.set(Some("Invalid dream ID".to_string()));
         set_is_loading.set(false);
     } else {
-        let api_url = format!("http://localhost:8080/api/dreams/{}", dream_id);
+        let api_url = format!("{}/dreams/{}", get_api_url(), dream_id);
 
         spawn_local(async move {
             let client = Client::new();
