@@ -85,8 +85,8 @@ Before setting up Nexus Flow, ensure you have the following installed:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/nexus-flow-full.git
-cd nexus-flow-full
+git clone https://git.us.qwasar.io/capstone-submission_182993_kyqxpf/capstone-submission.git nexus-flow
+cd nexus-flow
 
 # Set up environment variables (see Environment Configuration below)
 ```
@@ -408,8 +408,6 @@ See [LICENSE.md](LICENSE.md) for details.
 
 ## 🆘 Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-username/nexus-flow-full/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/nexus-flow-full/discussions)
 - **Email**: info@yogimathius.dev
 
 ## 🗺️ Roadmap
