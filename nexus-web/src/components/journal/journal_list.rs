@@ -1,6 +1,7 @@
+use crate::components::api::check_server_status;
 use crate::components::journal::{
     models::{Dream, DreamSearchFilters, Pagination},
-    service::{check_server_status, fetch_dreams},
+    service::fetch_dreams,
     JournalCard, JournalEmptyState, JournalError, JournalFilters, JournalLoading,
     JournalPagination, OfflineBanner, OfflineIndicator,
 };

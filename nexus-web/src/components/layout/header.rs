@@ -9,6 +9,9 @@ pub fn Header() -> impl IntoView {
     // Start with default dark mode
     let (is_dark_mode, set_is_dark_mode) = signal(true);
 
+    // Mobile menu state
+    let (is_mobile_menu_open, set_is_mobile_menu_open) = signal(false);
+
     // Store emojis as a static constant to avoid ownership issues
     const EMOJIS: &[&str] = &["🧠", "💭", "🌙", "✨", "🔮"];
     let (emoji_index, set_emoji_index) = signal(0);
@@ -57,6 +60,10 @@ pub fn Header() -> impl IntoView {
         apply_theme(new_mode);
     };
 
+    let toggle_mobile_menu = move |_| {
+        set_is_mobile_menu_open.update(|open| *open = !*open);
+    };
+
     // Function to access the current emoji
     let current_emoji = move || EMOJIS[emoji_index.get()];
 
@@ -64,7 +71,14 @@ pub fn Header() -> impl IntoView {
         <header class="header">
             <div class="container">
                 <div class="header-content">
-                    <div class="nav">
+                    // Logo (always visible)
+                    <a href="/" class="logo">
+                        <span class="animated-emoji">{current_emoji}</span>
+                        <span class="logo-text">"Dream Interpreter AI"</span>
+                    </a>
+
+                    // Desktop Navigation
+                    <nav class="nav nav-desktop">
                         <a href="/" class="nav-link">
                             "Home"
                         </a>
@@ -74,14 +88,10 @@ pub fn Header() -> impl IntoView {
                         <a href="/journal" class="nav-link">
                             "Journal"
                         </a>
-                    </div>
+                    </nav>
 
-                    <a href="/" class="logo logo-centered">
-                        <span class="animated-emoji">{current_emoji}</span>
-                        " Dream Interpreter AI"
-                    </a>
-
-                    <div class="flex items-center">
+                    // Theme toggle and hamburger menu container
+                    <div class="header-actions">
                         <button
                             on:click=toggle_dark_mode
                             class="theme-toggle"
@@ -95,9 +105,59 @@ pub fn Header() -> impl IntoView {
                         >
                             {move || if is_dark_mode.get() { "🌞" } else { "🌙" }}
                         </button>
+
+                        // Mobile menu toggle button
+                        <button
+                            on:click=toggle_mobile_menu
+                            class=move || format!("mobile-menu-toggle {}", if is_mobile_menu_open.get() { "mobile-menu-open" } else { "" })
+                            aria-label="Toggle navigation menu"
+                            aria-expanded=move || is_mobile_menu_open.get()
+                        >
+                            <span class="hamburger">
+                                <span class="hamburger-line"></span>
+                                <span class="hamburger-line"></span>
+                                <span class="hamburger-line"></span>
+                            </span>
+                        </button>
                     </div>
+
+                    // Mobile Navigation Overlay
+                    <nav
+                        class=move || format!("nav-mobile {}", if is_mobile_menu_open.get() { "nav-mobile-open" } else { "" })
+                        aria-hidden=move || !is_mobile_menu_open.get()
+                    >
+                        <div class="nav-mobile-content">
+                            <a
+                                href="/"
+                                class="nav-link-mobile"
+                                on:click=move |_| set_is_mobile_menu_open.set(false)
+                            >
+                                "Home"
+                            </a>
+                            <a
+                                href="/interpret"
+                                class="nav-link-mobile"
+                                on:click=move |_| set_is_mobile_menu_open.set(false)
+                            >
+                                "Interpret"
+                            </a>
+                            <a
+                                href="/journal"
+                                class="nav-link-mobile"
+                                on:click=move |_| set_is_mobile_menu_open.set(false)
+                            >
+                                "Journal"
+                            </a>
+                        </div>
+                    </nav>
                 </div>
             </div>
+
+            // Mobile menu backdrop
+            <div
+                class=move || format!("mobile-menu-backdrop {}", if is_mobile_menu_open.get() { "mobile-menu-backdrop-visible" } else { "" })
+                on:click=move |_| set_is_mobile_menu_open.set(false)
+            ></div>
         </header>
     }
 }

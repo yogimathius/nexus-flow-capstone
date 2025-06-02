@@ -1,5 +1,5 @@
 use crate::components::badges::{Badge, BadgeVariant};
-use crate::components::markdown::StyledInterpretation;
+use crate::components::markdown::InterpretationText;
 use leptos::prelude::*;
 
 #[component]
@@ -27,7 +27,7 @@ pub fn DreamResult(
                 </div>
 
                 <div role="article" aria-labelledby="result-heading">
-                    <StyledInterpretation content=text />
+                    <InterpretationText content=text />
                 </div>
 
                 <div class="text-center mt-6 fade-in animation-delay-3">
