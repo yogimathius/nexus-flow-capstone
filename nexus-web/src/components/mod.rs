@@ -1,3 +1,4 @@
+pub mod api;
 pub mod badges;
 pub mod buttons;
 pub mod dream;
