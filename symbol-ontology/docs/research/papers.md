@@ -4,7 +4,7 @@ This document consolidates relevant academic papers for the Symbol Ontology proj
 
 ## 1. Symbolic Ontology & AI Interpretability
 
-- **Ontology-Based Neuro-Symbolic AI: Effects on Prediction Quality and Explainability**  
+- **👀 Ontology-Based Neuro-Symbolic AI: Effects on Prediction Quality and Explainability**  
   _Source:_ ResearchGate (2024)  
   _Status:_ **Peer-Reviewed**  
   _Link:_ [ResearchGate](https://www.researchgate.net/publication/385204517)
@@ -24,27 +24,7 @@ This document consolidates relevant academic papers for the Symbol Ontology proj
   _Status:_ Preprint  
   _Link:_ [arXiv](https://arxiv.org/html/2411.08469v2)
 
-- **Symbols as a Lingua Franca for Bridging Human-AI Chasm**  
-  _Source:_ arXiv (2021)  
-  _Status:_ Preprint  
-  _Link:_ [arXiv](https://arxiv.org/abs/2109.09904)
-
-- **Neural-Symbolic Computing**  
-  _Source:_ arXiv (2019)  
-  _Status:_ Preprint  
-  _Link:_ [arXiv](https://arxiv.org/abs/1905.06088)
-
 ## 2. Jungian Archetypes & Computational Psychology
-
-- **Revisiting Carl Jung's Archetype Theory: A Psychobiological Approach**  
-  _Source:_ ScienceDirect (2023)  
-  _Status:_ **Peer-Reviewed**  
-  _Link:_ [ScienceDirect](https://www.sciencedirect.com/science/article/abs/pii/S0303264723002344)
-
-- **Demystifying Jung's 'Archetypes' with Embodied Cognition**  
-  _Source:_ PubMed (2024)  
-  _Status:_ **Peer-Reviewed**  
-  _Link:_ [PubMed](https://pubmed.ncbi.nlm.nih.gov/39254939/)
 
 - **Archetype-Based Modeling of Persona**  
   _Source:_ PubMed Central (2017)  
@@ -57,11 +37,6 @@ This document consolidates relevant academic papers for the Symbol Ontology proj
   _Link:_ [CIIS](https://digitalcommons.ciis.edu/cgi/viewcontent.cgi?article=1153&context=cejournal)
 
 ## 3. Model Context Protocol & LLM Grounding
-
-- **LLMs with the Model Context Protocol Allow Major Security Exploits**  
-  _Source:_ arXiv (2025)  
-  _Status:_ Preprint  
-  _Link:_ [arXiv](https://arxiv.org/html/2504.03767v2)
 
 - **Improving LLM Fidelity Through Context-Aware Grounding**  
   _Source:_ ResearchGate (2024)  
@@ -85,15 +60,16 @@ This document consolidates relevant academic papers for the Symbol Ontology proj
 
 ## 4. Rust & WebAssembly Integration
 
-- **Complementing JavaScript in High-Performance Node.js and Web Applications with Rust**  
+- **👀 Complementing JavaScript in High-Performance Node.js and Web Applications with Rust**
+
   _Source:_ MDPI Electronics (2022)  
   _Status:_ **Peer-Reviewed**  
   _Link:_ [MDPI](https://www.mdpi.com/2079-9292/11/19/3217)
 
-- **A Comparative Study of WebAssembly Runtimes: Performance Metrics, Integration Challenges, Application Domains, and Security Features**  
+- **A Comparative Study of WebAssembly Runtimes: Performance Metrics, Integration Challenges, Application Domains, and Security Features**
   _Source:_ ResearchGate (2024)  
-  _Status:_ **Peer-Reviewed**  
-  _Link:_ [ResearchGate](https://www.researchgate.net/publication/390719799)
+   _Status:_ **Peer-Reviewed**  
+   _Link:_ [ResearchGate](https://www.researchgate.net/publication/390719799)
 
 - **eWAPA: An eBPF-based WASI Performance Analysis Framework for WebAssembly Runtimes**  
   _Source:_ arXiv (2024)  
