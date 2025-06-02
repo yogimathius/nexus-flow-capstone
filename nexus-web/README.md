@@ -129,8 +129,8 @@ The project uses a clean CSS approach with a focus on maintainability:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/dream-interpreter.git
-cd dream-interpreter
+git clone https://git.us.qwasar.io/capstone-submission_182993_kyqxpf/capstone-submission.git nexus-flow
+cd nexus-flow/dream-interpreter
 
 # Install Rust dependencies
 cargo install trunk

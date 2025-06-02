@@ -15,8 +15,8 @@ This guide provides developers with practical information for implementing featu
 1. **Clone the repository**:
 
 ```bash
-git clone https://github.com/yourusername/symbol-ontology.git
-cd symbol-ontology
+git clone https://git.us.qwasar.io/capstone-submission_182993_kyqxpf/capstone-submission.git nexus-flow
+cd nexus-flow/symbol-ontology
 ```
 
 2. **Install dependencies**:

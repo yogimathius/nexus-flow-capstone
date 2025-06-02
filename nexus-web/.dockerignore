@@ -1,0 +1,27 @@
+# Rust build artifacts (this is the big one - 2.6GB!)
+target/
+
+# Node.js
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS generated files
+.DS_Store
+._*
+
+# IDE/Editor files
+.vscode/
+.idea/
+
+# Git (Docker doesn't need git history)
+.git/
+
+# Logs
+*.log
+
+# Cache directories
+.cache/ 
