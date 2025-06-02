@@ -38,13 +38,32 @@ pub struct Server {
 
 // Helper function to create consistent CORS configuration
 fn create_cors_layer() -> CorsLayer {
+    let mut allowed_origins = vec![
+        "http://localhost:3000".to_string(),
+        "http://localhost:3001".to_string(),
+        "http://localhost:3004".to_string(),
+        "http://127.0.0.1:3000".to_string(),
+        "http://127.0.0.1:3001".to_string(),
+        "http://127.0.0.1:3004".to_string(),
+    ];
+
+    // Add production origin if it exists and is valid
+    if let Ok(prod_origin) = std::env::var("PROD_ORIGIN") {
+        if !prod_origin.is_empty() && prod_origin.starts_with("http") {
+            allowed_origins.push(prod_origin);
+        }
+    }
+
+    // Convert to HeaderValues and filter out any invalid ones
+    let header_values: Vec<HeaderValue> = allowed_origins
+        .into_iter()
+        .filter_map(|origin| origin.parse().ok())
+        .collect();
+
+    info!("CORS configured for origins: {:?}", header_values);
+
     CorsLayer::new()
-        .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
-        .allow_origin("http://localhost:3001".parse::<HeaderValue>().unwrap())
-        .allow_origin("http://localhost:3004".parse::<HeaderValue>().unwrap())
-        .allow_origin("http://127.0.0.1:3000".parse::<HeaderValue>().unwrap())
-        .allow_origin("http://127.0.0.1:3001".parse::<HeaderValue>().unwrap())
-        .allow_origin("http://127.0.0.1:3004".parse::<HeaderValue>().unwrap())
+        .allow_origin(header_values)
         .allow_methods([
             Method::GET,
             Method::POST,
@@ -121,7 +140,7 @@ impl Server {
                 Err(e) => {
                     tracing::warn!(
                         "Failed to initialize or verify MCP client connection: {}. Continuing without MCP functionality. \
-                         Make sure the MCP server is running at the expected endpoint.",
+                                Make sure the MCP server is running at the expected endpoint.",
                         e
                     );
                 }
