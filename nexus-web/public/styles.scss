@@ -1,0 +1,125 @@
+/* --------------------- Open Props --------------------------- */
+
+/* the props */
+@import "https://unpkg.com/open-props";
+
+/* optional imports that use the props */
+@import "https://unpkg.com/open-props/normalize.min.css";
+@import "https://unpkg.com/open-props/buttons.min.css";
+
+/* ------------------------------------------------------------ */
+
+body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.buttons {
+  display: flex;
+  justify-content: space-evenly;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  text-align: center;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+p,
+button {
+  margin: var(--size-6);
+}
+
+body > picture,
+button {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  margin: 2rem;
+}
+
+/* Dream Interpreter Styles */
+.dream-interpreter {
+  margin-top: 2rem;
+  width: 100%;
+  max-width: 600px;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--gray-4);
+  border-radius: 4px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.submit-btn {
+  background-color: var(--indigo-6);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.submit-btn:disabled {
+  background-color: var(--gray-5);
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: var(--red-7);
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: var(--red-1);
+  border-radius: 4px;
+}
+
+.interpretation {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 1px solid var(--indigo-3);
+  border-radius: 4px;
+  background-color: var(--indigo-1);
+  text-align: left;
+}
+
+.interpretation h3 {
+  padding: 0 0 1rem 0;
+  color: var(--indigo-9);
+}
+
+.interpretation-text {
+  white-space: pre-line;
+  margin: 0;
+  line-height: 1.6;
+}

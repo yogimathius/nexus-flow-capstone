@@ -1,0 +1,49 @@
+/* Main stylesheet for Dream Interpreter AI */
+
+/* Import CSS files in the correct order */
+@import "variables.css";
+@import "base.css";
+@import "layout.css";
+@import "components.css";
+
+/* Utility classes and overrides that should come last */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.max-h-screen {
+  max-height: 100vh;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.p-0 {
+  padding: 0;
+}
+
+/* Dark/Light mode transitions */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *:before,
+html.theme-transition *:after {
+  transition: all 0.3s ease-in-out !important;
+  transition-delay: 0 !important;
+}
