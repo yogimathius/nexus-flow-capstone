@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO dream_tags (dream_id, tag)\n            VALUES ($1, $2)\n            ON CONFLICT (dream_id, tag) DO NOTHING\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1bb7541fafecc1b06151ff85dca81a4d10966aa211c10acb08f1efe9b9bce877"
+}
