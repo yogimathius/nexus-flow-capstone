@@ -11,22 +11,21 @@ pub fn get_base_api_url() -> String {
         }
     }
 
-    // Fallback to runtime detection for development
-    let host = if web_sys::window()
-        .unwrap()
-        .location()
-        .hostname()
-        .unwrap_or_default()
-        == "127.0.0.1"
-    {
-        "127.0.0.1"
-    } else {
-        "localhost"
-    };
+    // Simple production check - if hostname contains fly.dev, we're in production
+    let is_production = web_sys::window()
+        .and_then(|w| w.location().hostname().ok())
+        .map(|hostname| hostname.contains(".fly.dev"))
+        .unwrap_or(false);
 
-    let fallback_url = format!("http://{}:8080/api", host);
-    log!("Using fallback API URL: {}", fallback_url);
-    fallback_url
+    if is_production {
+        let production_url = "https://nexus-core.fly.dev/api".to_string();
+        log!("Production environment detected, using: {}", production_url);
+        production_url
+    } else {
+        let local_url = "http://localhost:8080/api".to_string();
+        log!("Local environment detected, using: {}", local_url);
+        local_url
+    }
 }
 
 /// Get API URL for dream interpretation endpoint
