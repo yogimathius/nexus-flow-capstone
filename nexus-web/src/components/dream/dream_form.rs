@@ -1,7 +1,7 @@
 use crate::components::buttons::{Button, ButtonVariant};
 use crate::components::dream::service;
-use leptos::prelude::*;
 use leptos::logging::log;
+use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 const MIN_DREAM_LENGTH: usize = 20; // Minimum characters for a meaningful dream description
@@ -13,13 +13,13 @@ pub fn DreamForm(
     is_loading: ReadSignal<bool>,
     set_is_loading: WriteSignal<bool>,
     auto_save: ReadSignal<bool>,
-    set_auto_save: WriteSignal<bool>, 
+    set_auto_save: WriteSignal<bool>,
     _button_disabled: ReadSignal<bool>,
     _set_button_disabled: WriteSignal<bool>,
     error: ReadSignal<Option<String>>,
     set_error: WriteSignal<Option<String>>,
     set_interpretation: WriteSignal<Option<String>>,
-    set_saved_dream_id: WriteSignal<Option<String>>
+    set_saved_dream_id: WriteSignal<Option<String>>,
 ) -> impl IntoView {
     let handle_submit = move |ev: web_sys::SubmitEvent| {
         ev.prevent_default();
@@ -45,12 +45,11 @@ pub fn DreamForm(
 
         let dream_clone = dream.clone();
         let save = auto_save.get();
-        
+
         spawn_local(async move {
             match service::interpret_dream(dream_clone, save).await {
                 Ok(data) => {
-                    let formatted_interpretation = service::format_interpretation(&data.interpretation);
-                    set_interpretation.set(Some(formatted_interpretation));
+                    set_interpretation.set(Some(data.interpretation));
 
                     if let Some(id) = data.id {
                         set_saved_dream_id.set(Some(id));
@@ -63,17 +62,17 @@ pub fn DreamForm(
                 }
             }
 
-            set_is_loading.set(false);            
+            set_is_loading.set(false);
             log!("Request completed, loading state set to false");
         });
     };
 
     let char_count = Signal::derive(move || dream_text.get().len());
-    
+
     let get_validation_status = move || {
         let text = dream_text.get();
         let count = text.trim().len();
-        
+
         if count == 0 {
             "empty"
         } else if count < MIN_DREAM_LENGTH {
@@ -193,4 +192,4 @@ pub fn DreamForm(
             </form>
         </div>
     }
-} 
+}

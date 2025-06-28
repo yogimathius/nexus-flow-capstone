@@ -91,27 +91,3 @@ pub async fn interpret_dream(dream_text: String, save: bool) -> Result<DreamResp
         }
     }
 }
-
-pub fn format_interpretation(text: &str) -> String {
-    let text = if let Some(start_idx) = text.find("<think>") {
-        if let Some(end_idx) = text.find("</think>") {
-            let before = &text[0..start_idx];
-            let after = &text[(end_idx + 8)..];
-            format!("{}{}", before, after)
-        } else {
-            text.to_string()
-        }
-    } else {
-        text.to_string()
-    };
-
-    let text = text
-        .replace("###", "<h3 class=\"interp-heading\">")
-        .replace("####", "<h4 class=\"interp-subheading\">")
-        .replace("\n\n", "<br/><br/>")
-        .replace("\n---\n", "<hr class=\"interp-divider\"/>");
-
-    let text = text.replace("**", "<strong>").replace("*", "<em>");
-
-    text.replace("\n", "<br/>")
-}
