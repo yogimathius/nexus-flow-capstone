@@ -1,4 +1,4 @@
-use crate::components::journal_entry::models::Dream;
+use crate::components::journal::models::Dream;
 use crate::components::journal_entry::EntryNavigation;
 use crate::components::markdown::{DreamText, InterpretationText};
 use leptos::prelude::*;

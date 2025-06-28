@@ -5,7 +5,8 @@ pub mod entry_header;
 pub mod entry_loading;
 pub mod entry_navigation;
 pub mod hooks;
-pub mod models;
+// Re-export Dream from journal models to maintain compatibility
+pub use crate::components::journal::models::Dream;
 
 pub use entry_detail::EntryDetail;
 pub use entry_error::EntryError;
@@ -14,4 +15,3 @@ pub use entry_header::EntryHeader;
 pub use entry_loading::EntryLoading;
 pub use entry_navigation::EntryNavigation;
 pub use hooks::use_dream_data;
-pub use models::Dream;
