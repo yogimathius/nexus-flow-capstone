@@ -36,7 +36,7 @@ html[data-theme="light"] {
 
   /* Enhanced Gradient Colors */
   --gradient-start: #8b5cf6; /* Violet 500 */
-  --gradient-end: #6d28d9; /* Violet 700 */
+  --gradient-end: #3b82f6; /* Blue 500 - subtle blue blend */
   --gradient-accent: #c4b5fd; /* Violet 300 */
 
   /* Shadows for light mode */
@@ -81,7 +81,7 @@ html[data-theme="dark"] {
 
   /* Enhanced Gradient Colors for Dark Mode */
   --gradient-start: #6d28d9; /* Violet 700 */
-  --gradient-end: #4c1d95; /* Violet 900 */
+  --gradient-end: #1e40af; /* Blue 800 - deeper blue blend */
   --gradient-accent: #8b5cf6; /* Violet 500 */
 
   /* Shadow adjustments for dark mode */
