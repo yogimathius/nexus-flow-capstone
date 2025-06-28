@@ -1,15 +1,8 @@
+use crate::components::api::get_dreams_url;
 use crate::components::journal_entry::Dream;
 use leptos::prelude::*;
 use reqwest::Client;
 use wasm_bindgen_futures::spawn_local;
-
-fn get_api_url() -> String {
-    if let Some(api_url) = option_env!("API_URL") {
-        return api_url.to_string();
-    }
-    
-    "https://nexus-core.fly.dev/api".to_string()
-}
 
 #[derive(Clone)]
 pub struct DreamState {
@@ -36,7 +29,7 @@ pub fn use_dream_data(dream_id: String) -> DreamState {
         set_error.set(Some("Invalid dream ID".to_string()));
         set_is_loading.set(false);
     } else {
-        let api_url = format!("{}/dreams/{}", get_api_url(), dream_id);
+        let api_url = format!("{}/{}", get_dreams_url(), dream_id);
 
         spawn_local(async move {
             let client = Client::new();
@@ -74,4 +67,4 @@ pub fn use_dream_data(dream_id: String) -> DreamState {
         error: error.into(),
         format_date,
     }
-} 
+}
