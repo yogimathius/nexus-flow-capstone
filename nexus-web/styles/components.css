@@ -152,7 +152,7 @@
   border-radius: var(--border-radius-lg);
   padding: var(--space-6);
   box-shadow: var(--shadow-md);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -181,9 +181,9 @@
 }
 
 .card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-8px) scale(1.02);
   box-shadow: var(--shadow-float);
-  border-color: rgba(var(--primary-light-rgb), 0.3);
+  border-color: rgba(var(--primary-light-rgb), 0.4);
 }
 
 .card:hover::before {
