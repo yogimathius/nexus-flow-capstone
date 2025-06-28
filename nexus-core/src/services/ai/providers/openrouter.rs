@@ -50,7 +50,7 @@ impl OpenRouterProvider {
             client,
             url: "https://openrouter.ai/api/v1/chat/completions".to_string(),
             model_config: ModelConfig {
-                name: "deepseek/deepseek-prover-v2:free".to_string(),
+                name: "deepseek/deepseek-chat-v3-0324:free".to_string(),
                 temperature: 0.7,
                 top_p: 0.9,
                 max_tokens: None,
