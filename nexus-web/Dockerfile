@@ -16,4 +16,4 @@ RUN rustup target add wasm32-unknown-unknown && \
 # Runtime stage
 FROM pierrezemb/gostatic
 COPY --from=builder /app/dist /srv/http/
-CMD ["-port","8080","-https-promote", "-enable-logging"] 
+CMD ["-port","8080","-https-promote", "-enable-logging", "-fallback", "/index.html"] 
