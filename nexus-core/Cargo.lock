@@ -220,6 +220,7 @@ dependencies = [
  "clap",
  "dotenv",
  "dotenvy",
+ "fastrand 2.3.0",
  "reqwest",
  "rmcp",
  "serde",
