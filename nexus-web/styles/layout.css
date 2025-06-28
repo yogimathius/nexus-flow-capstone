@@ -878,7 +878,7 @@
 
 .dreams-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: var(--space-6);
   width: 100%;
   margin: var(--space-6) 0;
@@ -1021,7 +1021,7 @@
 /* Responsive adjustments for filters */
 @media (max-width: 768px) {
   .dreams-grid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 
   .filters-container {
