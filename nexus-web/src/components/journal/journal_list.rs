@@ -93,7 +93,9 @@ pub fn JournalList() -> impl IntoView {
 
     let handle_search = Callback::new(move |ev: web_sys::SubmitEvent| {
         ev.prevent_default();
-        set_pagination.update(|p| {});
+        set_pagination.update(|p| {
+            p.current_page = 1;
+        });
     });
 
     let handle_refresh = Callback::new(move |()| {

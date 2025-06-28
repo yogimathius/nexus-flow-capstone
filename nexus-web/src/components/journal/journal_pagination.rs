@@ -6,14 +6,13 @@ pub fn JournalPagination(
     #[prop(into)] pagination: Signal<Pagination>,
     #[prop(into)] on_page_change: Callback<usize>,
 ) -> impl IntoView {
-    let p = pagination.get();
-
     view! {
         <div class="pagination slide-up animation-delay-4">
             <button
                 class="page-button"
-                disabled=p.current_page == 1
+                disabled=move || pagination.get().current_page == 1
                 on:click=move |_| {
+                    let p = pagination.get();
                     if p.current_page > 1 {
                         on_page_change.run(p.current_page - 1);
                     }
@@ -35,12 +34,15 @@ pub fn JournalPagination(
                 "Previous"
             </button>
 
-            <span class="page-info">"Page " {p.current_page} " of " {p.total_pages}</span>
+            <span class="page-info">
+                "Page " {move || pagination.get().current_page} " of " {move || pagination.get().total_pages}
+            </span>
 
             <button
                 class="page-button"
-                disabled=p.current_page == p.total_pages
+                disabled=move || pagination.get().current_page == pagination.get().total_pages
                 on:click=move |_| {
+                    let p = pagination.get();
                     if p.current_page < p.total_pages {
                         on_page_change.run(p.current_page + 1);
                     }
