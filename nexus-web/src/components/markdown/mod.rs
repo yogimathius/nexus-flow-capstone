@@ -8,7 +8,7 @@ pub use styled_interpretation::StyledInterpretation;
 /// Converts markdown text to styled HTML
 ///
 /// This function handles:
-/// - Headers (### and ####)
+/// - Headers (# ## ### and ####)
 /// - Emphasis (*italic* and **bold**)
 /// - Dividers (---)
 /// - Removes <think> tags used by the AI
@@ -32,10 +32,14 @@ pub fn render_markdown(text: &str) -> String {
     let lines = text.lines();
 
     for line in lines {
-        let processed_line = if line.starts_with("### ") {
-            format!("<h3 class=\"md-heading\">{}</h3>", &line[4..])
-        } else if line.starts_with("#### ") {
+        let processed_line = if line.starts_with("#### ") {
             format!("<h4 class=\"md-subheading\">{}</h4>", &line[5..])
+        } else if line.starts_with("### ") {
+            format!("<h3 class=\"md-heading\">{}</h3>", &line[4..])
+        } else if line.starts_with("## ") {
+            format!("<h2 class=\"md-heading\">{}</h2>", &line[3..])
+        } else if line.starts_with("# ") {
+            format!("<h2 class=\"md-heading\">{}</h2>", &line[2..])
         } else if line == "---" {
             "<hr class=\"md-divider\"/>".to_string()
         } else {
@@ -93,6 +97,8 @@ pub fn render_markdown(text: &str) -> String {
         .replace("<br/><br/>", "<br/>")
         .replace("<br/></h3>", "</h3>")
         .replace("<br/></h4>", "</h4>")
+        .replace("<br/></h2>", "</h2>")
         .replace("</h3><br/>", "</h3>")
         .replace("</h4><br/>", "</h4>")
+        .replace("</h2><br/>", "</h2>")
 }
