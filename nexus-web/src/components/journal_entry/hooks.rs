@@ -1,7 +1,5 @@
-use crate::components::api::get_dreams_url;
-use crate::components::journal_entry::Dream;
+use crate::components::journal::models::Dream;
 use leptos::prelude::*;
-use reqwest::Client;
 use wasm_bindgen_futures::spawn_local;
 
 #[derive(Clone)]
@@ -10,6 +8,27 @@ pub struct DreamState {
     pub is_loading: Signal<bool>,
     pub error: Signal<Option<String>>,
     pub format_date: fn(&str) -> String,
+}
+
+// Get dreams from localStorage
+fn get_dreams_from_storage() -> Result<Vec<Dream>, String> {
+    if let Some(window) = web_sys::window() {
+        if let Ok(storage) = window.local_storage() {
+            if let Some(storage) = storage {
+                match storage.get_item("nexus_flow_dreams") {
+                    Ok(Some(json)) => {
+                        return match serde_json::from_str::<Vec<Dream>>(&json) {
+                            Ok(dreams) => Ok(dreams),
+                            Err(e) => Err(format!("Failed to parse dreams: {}", e)),
+                        };
+                    }
+                    Ok(None) => return Ok(Vec::new()),
+                    Err(_) => return Err("Failed to read from localStorage".to_string()),
+                }
+            }
+        }
+    }
+    Err("Failed to access localStorage".to_string())
 }
 
 pub fn use_dream_data(dream_id: String) -> DreamState {
@@ -29,34 +48,21 @@ pub fn use_dream_data(dream_id: String) -> DreamState {
         set_error.set(Some("Invalid dream ID".to_string()));
         set_is_loading.set(false);
     } else {
-        let api_url = format!("{}/{}", get_dreams_url(), dream_id);
-
+        // First try to find in localStorage
         spawn_local(async move {
-            let client = Client::new();
-            match client.get(&api_url).send().await {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        match response.json::<Dream>().await {
-                            Ok(data) => {
-                                set_dream.set(Some(data));
-                            }
-                            Err(e) => {
-                                set_error.set(Some(format!("Failed to parse response: {}", e)));
-                            }
-                        }
-                    } else if response.status().as_u16() == 404 {
-                        set_error.set(Some("Dream not found".to_string()));
-                    } else {
-                        set_error.set(Some(format!(
-                            "Server error: {}",
-                            response.status().as_str()
-                        )));
+            match get_dreams_from_storage() {
+                Ok(dreams) => {
+                    if let Some(dream_data) = dreams.iter().find(|d| d.id == dream_id) {
+                        set_dream.set(Some(dream_data.clone()));
+                        set_is_loading.set(false);
+                        return;
                     }
                 }
-                Err(e) => {
-                    set_error.set(Some(format!("Failed to connect to the server: {}", e)));
-                }
+                Err(_) => {}
             }
+            
+            // If not found in localStorage, show error since API endpoint doesn't exist
+            set_error.set(Some("Dream not found. The dream may have been deleted or the ID is invalid.".to_string()));
             set_is_loading.set(false);
         });
     }
