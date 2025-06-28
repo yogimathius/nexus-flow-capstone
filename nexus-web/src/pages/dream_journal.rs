@@ -5,14 +5,16 @@ use leptos::prelude::*;
 pub fn DreamJournalPage() -> impl IntoView {
     view! {
         <div class="dream-journal fade-in">
-            <div class="journal-header bg-gradient">
+            <section class="section bg-gradient">
                 <div class="container">
-                    <h1 class="slide-up">"Dream Journal"</h1>
-                    <p class="intro-text slide-up animation-delay-1">
-                        "Your personal collection of dreams and their interpretations."
-                    </p>
+                    <div class="stack items-center text-center">
+                        <h1 class="slide-up">"Dream Journal"</h1>
+                        <p class="slide-up animation-delay-1">
+                            "Your personal collection of dreams and their interpretations."
+                        </p>
+                    </div>
                 </div>
-            </div>
+            </section>
 
             <JournalList />
         </div>
