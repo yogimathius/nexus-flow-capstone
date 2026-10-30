@@ -6,7 +6,7 @@ pub fn Footer() -> impl IntoView {
         <footer class="footer">
             <div class="container">
                 <div class="footer-content">
-                    <p>"© 2025 Dream Interpreter AI · Powered by Leptos"</p>
+                    <p>"© 2026 Nexus Flow · Built with Leptos"</p>
                 </div>
             </div>
         </footer>

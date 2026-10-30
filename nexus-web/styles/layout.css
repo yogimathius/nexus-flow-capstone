@@ -157,15 +157,15 @@
 
 /* Mobile Navigation */
 .nav-mobile {
+  display: none;
   position: fixed;
   top: 0;
-  right: -100%;
+  right: 0;
   width: 280px;
   height: 100vh;
   background: var(--card);
   border-left: 1px solid var(--border);
   z-index: calc(var(--z-header) + 5);
-  transition: right 0.3s ease;
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(20px);
@@ -173,7 +173,7 @@
 }
 
 .nav-mobile-open {
-  right: 0;
+  display: block;
 }
 
 .nav-mobile-content {
@@ -396,7 +396,7 @@
   /* Mobile navigation adjustments */
   .nav-mobile {
     width: 100vw;
-    right: -100vw;
+    right: 0;
   }
 
   .nav-mobile-content {

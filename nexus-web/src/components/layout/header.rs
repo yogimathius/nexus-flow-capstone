@@ -1,6 +1,5 @@
 use js_sys;
 use leptos::prelude::*;
-use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use web_sys::window;
 
@@ -11,10 +10,6 @@ pub fn Header() -> impl IntoView {
 
     // Mobile menu state
     let (is_mobile_menu_open, set_is_mobile_menu_open) = signal(false);
-
-    // Store emojis as a static constant to avoid ownership issues
-    const EMOJIS: &[&str] = &["🧠", "💭", "🌙", "✨", "🔮"];
-    let (emoji_index, set_emoji_index) = signal(0);
 
     // Initialize theme when component loads
     let init_theme = move || {
@@ -39,15 +34,6 @@ pub fn Header() -> impl IntoView {
         apply_theme(is_dark_mode.get());
     });
 
-    // Set up emoji rotation
-    set_interval(
-        move || {
-            let next_index = (emoji_index.get() + 1) % EMOJIS.len();
-            set_emoji_index.set(next_index);
-        },
-        Duration::from_millis(3000),
-    );
-
     let toggle_dark_mode = move |_| {
         let new_mode = !is_dark_mode.get();
         set_is_dark_mode.set(new_mode);
@@ -64,17 +50,14 @@ pub fn Header() -> impl IntoView {
         set_is_mobile_menu_open.update(|open| *open = !*open);
     };
 
-    // Function to access the current emoji
-    let current_emoji = move || EMOJIS[emoji_index.get()];
-
     view! {
         <header class="header">
             <div class="container">
                 <div class="header-content">
                     // Logo (always visible)
-                    <a href="/" class="logo">
-                        <span class="animated-emoji">{current_emoji}</span>
-                        <span class="logo-text">"Dream Interpreter AI"</span>
+                    <a href="/" class="logo" aria-label="Nexus Flow home">
+                        <span class="logo-mark">"🌙"</span>
+                        <span class="logo-text">"Nexus Flow"</span>
                     </a>
 
                     // Desktop Navigation
