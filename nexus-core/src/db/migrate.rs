@@ -5,7 +5,7 @@ use std::path::Path;
 pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
     println!("Running database migrations...");
 
-    let migrations = sqlx::migrate::Migrator::new(Path::new("./migrations")).await?;
+    let migrations = sqlx::migrate::Migrator::new(Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/migrations"))).await?;
 
     migrations.run(pool).await?;
 

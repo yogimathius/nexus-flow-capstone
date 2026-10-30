@@ -33,7 +33,17 @@ pub struct DreamResponse {
 }
 
 pub struct Server {
-    // Removing unused port field
+    port: u16,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Server;
+
+    #[test]
+    fn server_retains_requested_port() {
+        assert_eq!(Server::new(3017).port(), 3017);
+    }
 }
 
 // Helper function to create consistent CORS configuration
@@ -75,8 +85,12 @@ fn create_cors_layer() -> CorsLayer {
 }
 
 impl Server {
-    pub fn new(_port: u16) -> Self {
-        Server {}
+    pub fn new(port: u16) -> Self {
+        Server { port }
+    }
+
+    pub fn port(&self) -> u16 {
+        self.port
     }
 
     pub fn router(&self) -> axum::Router {
@@ -89,49 +103,21 @@ impl Server {
         api::router(app_state).layer(create_cors_layer())
     }
 
-    pub async fn run(&self) {
-        let config = match crate::config::Config::from_env() {
-            Ok(config) => {
-                info!("Configuration loaded successfully");
-                config
-            }
-            Err(e) => {
-                tracing::error!("Failed to load configuration: {}", e);
-                return;
-            }
-        };
+    pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let config = crate::config::Config::from_env()?;
+        info!("Configuration loaded successfully");
 
-        info!("config: {:?}", config);
+        db::migrate::create_database_if_not_exists(&config.database_url).await?;
+        info!("Database checked/created successfully");
 
-        match db::migrate::create_database_if_not_exists(&config.database_url).await {
-            Ok(_) => info!("Database checked/created successfully"),
-            Err(e) => {
-                tracing::error!("Database setup error: {}", e);
-                return;
-            }
-        }
-
-        let db_pool = match db::create_pool(&config.database_url).await {
-            Ok(pool) => {
-                info!("Connected to database successfully");
-                pool
-            }
-            Err(e) => {
-                tracing::error!("Failed to connect to database: {}", e);
-                return;
-            }
-        };
+        let db_pool = db::create_pool(&config.database_url).await?;
+        info!("Connected to database successfully");
+        db::migrate::run_migrations(&db_pool).await?;
 
         let mut app_state = AppState::new(db_pool, config.openrouter_api_key, config.github_token);
 
         if config.enable_mcp {
             info!("MCP client integration is enabled, attempting to connect...");
-
-            if let Some(url) = &config.mcp_server_url {
-                unsafe {
-                    std::env::set_var("MCP_SERVER_URL", url);
-                }
-            }
 
             match app_state.with_mcp_client().await {
                 Ok(_) => {
@@ -140,7 +126,7 @@ impl Server {
                 Err(e) => {
                     tracing::warn!(
                         "Failed to initialize or verify MCP client connection: {}. Continuing without MCP functionality. \
-                                Make sure the MCP server is running at the expected endpoint.",
+                                Check the configured MCP transport and server process.",
                         e
                     );
                 }
@@ -155,12 +141,11 @@ impl Server {
             .layer(create_cors_layer())
             .layer(tower_http::trace::TraceLayer::new_for_http());
 
-        let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+        let addr = SocketAddr::from(([127, 0, 0, 1], self.port));
         info!("Starting server on {}", addr);
 
-        let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-        axum::serve(listener, app).await.unwrap_or_else(|e| {
-            tracing::error!("Server error: {:?}", e);
-        });
+        let listener = tokio::net::TcpListener::bind(addr).await?;
+        axum::serve(listener, app).await?;
+        Ok(())
     }
 }

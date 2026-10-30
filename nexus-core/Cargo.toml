@@ -3,6 +3,7 @@ name = "axum-server"
 version = "0.1.0"
 edition = "2024"
 build = "build.rs"
+default-run = "axum-server"
 
 [dependencies]
 axum = "0.8.3"
@@ -12,7 +13,7 @@ clap = { version = "4.0", features = ["derive"] }
 dotenv = "0.15.0"
 dotenvy = "0.15.7"
 reqwest ={ version =  "0.12.15", features = ["json"] }
-rmcp = { version= "0.1.5", features = ["server", "client", "transport-child-process", "transport-sse"] }
+rmcp = { version = "0.3.2", features = ["client", "transport-child-process", "transport-sse-client", "reqwest"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 sqlx = { version = "0.8.3", features = ["runtime-tokio-rustls", "postgres", "uuid", "time", "chrono", "migrate"] }

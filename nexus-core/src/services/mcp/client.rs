@@ -44,9 +44,18 @@ impl McpClient {
     pub async fn new() -> AppResult<Self> {
         info!("Initializing MCP client...");
 
-        match Self::try_connect_to_external_server().await {
+        let transport = std::env::var("MCP_TRANSPORT").unwrap_or_else(|_| "sse".to_string());
+        let connection = match transport.as_str() {
+            "stdio" => Self::connect_to_local_server().await,
+            "sse" => Self::try_connect_to_external_server().await,
+            other => Err(AppError::McpError(format!(
+                "Unsupported MCP_TRANSPORT '{other}'; use 'stdio' or 'sse'"
+            ))),
+        };
+
+        match connection {
             Ok(client) => {
-                info!("Successfully connected to external MCP server");
+                info!("Successfully connected to MCP server via {}", transport);
                 Ok(Self { client })
             }
             Err(e) => {
@@ -59,33 +68,72 @@ impl McpClient {
         }
     }
 
+    async fn connect_to_local_server() -> AppResult<
+        rmcp::service::RunningService<rmcp::RoleClient, rmcp::model::InitializeRequestParam>,
+    > {
+        use rmcp::transport::TokioChildProcess;
+
+        let entry = std::env::var("SYMBOLS_MCP_ENTRY").map_err(|_| {
+            AppError::McpError("SYMBOLS_MCP_ENTRY is required for stdio transport".into())
+        })?;
+        let entry = std::path::Path::new(&entry)
+            .canonicalize()
+            .map_err(|e| AppError::McpError(format!("Cannot open SYMBOLS_MCP_ENTRY: {e}")))?;
+        let node = std::env::var("SYMBOLS_MCP_NODE").unwrap_or_else(|_| "node".to_string());
+        let mut command = tokio::process::Command::new(node);
+        command.arg(&entry);
+        let demo_mode = matches!(
+            std::env::var("SYMBOLS_MCP_DEMO").as_deref(),
+            Ok("true" | "1" | "yes")
+        );
+        if demo_mode {
+            command.arg("--demo");
+        } else {
+            let database_url = std::env::var("SYMBOLS_MCP_DATABASE_URL").map_err(|_| {
+                AppError::McpError(
+                    "SYMBOLS_MCP_DATABASE_URL is required when SYMBOLS_MCP_DEMO is not enabled"
+                        .into(),
+                )
+            })?;
+            command.env("DATABASE_URL", database_url);
+        }
+
+        let transport = TokioChildProcess::new(command)
+            .map_err(|e| AppError::McpError(format!("Could not start local MCP process: {e}")))?;
+        Self::client_info()
+            .serve(transport)
+            .await
+            .map_err(|e| AppError::McpError(format!("Could not initialize local MCP process: {e}")))
+    }
+
+    fn client_info() -> rmcp::model::ClientInfo {
+        use rmcp::model::{ClientCapabilities, ClientInfo, Implementation};
+
+        ClientInfo {
+            protocol_version: Default::default(),
+            capabilities: ClientCapabilities::default(),
+            client_info: Implementation {
+                name: "Nexus Core MCP Client".to_string(),
+                version: "0.1.0".to_string(),
+            },
+        }
+    }
+
     async fn try_connect_to_external_server() -> AppResult<
         rmcp::service::RunningService<rmcp::RoleClient, rmcp::model::InitializeRequestParam>,
     > {
-        use rmcp::{
-            model::{ClientCapabilities, ClientInfo, Implementation},
-            transport::SseTransport,
-        };
+        use rmcp::transport::SseClientTransport;
 
         let url = std::env::var("MCP_SERVER_URL")
             .unwrap_or_else(|_| "http://localhost:3002/sse".to_string());
 
         info!("Attempting to connect to external MCP server at {}", url);
 
-        match SseTransport::start(&url).await {
+        match SseClientTransport::start(url.clone()).await {
             Ok(transport) => {
                 info!("Connected to external MCP server at {}", url);
 
-                let client_info = ClientInfo {
-                    protocol_version: Default::default(),
-                    capabilities: ClientCapabilities::default(),
-                    client_info: Implementation {
-                        name: "Dream Interpreter MCP Client".to_string(),
-                        version: "0.1.0".to_string(),
-                    },
-                };
-
-                match client_info.serve(transport).await {
+                match Self::client_info().serve(transport).await {
                     Ok(client) => {
                         info!("Successfully initialized MCP client with external server");
                         Ok(client)
@@ -176,6 +224,31 @@ impl McpClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    #[ignore = "Requires SYMBOLS_MCP_ENTRY and SYMBOLS_MCP_DEMO=true"]
+    async fn connects_to_local_symbols_awakening_server() {
+        let client = tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            McpClient::connect_to_local_server(),
+        )
+        .await
+        .expect("MCP handshake timed out")
+        .unwrap();
+        let tools = tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            client.list_tools(Default::default()),
+        )
+        .await
+        .expect("MCP tools/list timed out")
+        .unwrap();
+        assert!(tools.tools.iter().any(|tool| tool.name == "search_symbols"));
+
+        let symbols = SymbolLookup::try_mcp_lookup(&client, &["Ouroboros"])
+            .await
+            .unwrap();
+        assert_eq!(symbols[0].symbol, "Ouroboros");
+    }
 
     #[tokio::test]
     #[ignore = "Requires a running MCP server"]

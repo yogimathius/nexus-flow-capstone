@@ -80,11 +80,6 @@ impl GitHubProvider {
     }
 
     async fn request_completion(&self, prompt: &str) -> AppResult<String> {
-        if self.token.starts_with("test_") || self.token == "dummy_key" {
-            info!("Using test token - returning mock dream interpretation");
-            return Ok("This is a mock dream interpretation for testing purposes. This dream symbolizes transition and transformation. The symbols in your dream represent your subconscious mind processing changes in your waking life.".to_string());
-        }
-
         info!(
             "Using GitHub API for completion with model: {}",
             self.model_config.name
@@ -103,10 +98,6 @@ impl GitHubProvider {
             top_p: self.model_config.top_p,
             publisher: "openai".to_string(),
         };
-
-        if let Ok(body_json) = serde_json::to_string(&request_body) {
-            info!("GitHub API request: {}", body_json);
-        }
 
         let response = self
             .client

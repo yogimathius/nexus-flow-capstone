@@ -1,5 +1,6 @@
 use axum_server::Server;
 use axum_server::services::ai::{AiClient, AiClientTrait};
+use axum_server::services::ai::providers::GitHubProvider;
 use dotenv::dotenv;
 use sqlx::PgPool;
 use std::sync::Once;
@@ -51,14 +52,9 @@ pub fn create_test_ai_client() -> Box<dyn AiClientTrait> {
 
 // Helper to create a mock AI client with a custom URL (for tests with wiremock)
 #[allow(dead_code)]
-pub fn create_test_ai_client_with_url(_url: &str) -> Box<dyn AiClientTrait> {
+pub fn create_test_ai_client_with_url(url: &str) -> Box<dyn AiClientTrait> {
     initialize();
-
-    // Just create a test client with a mock GitHub token
-    let github_token = Some("test_github_token".to_string());
-
-    // For tests, we'll just use a mock client since we don't have OpenRouter anymore
-    println!("Creating test AI client with mock GitHub token");
-
-    Box::new(AiClient::new(github_token))
+    Box::new(AiClient::new(None).with_github_provider(
+        GitHubProvider::new("wiremock-token".to_string()).with_url(url),
+    ))
 }

@@ -17,7 +17,7 @@ use crate::models::dream::{Dream, PaginatedDreams, SortField, SortOrder};
 pub struct DreamRequest {
     pub dream_text: String,
     #[serde(default)]
-    pub save: bool, // Optional parameter to save the dream, defaults to false for backward compatibility
+    pub save: bool, // Saving requires an explicit opt-in.
 }
 
 #[derive(Serialize)]
@@ -104,6 +104,11 @@ fn app_error_to_response(err: AppError) -> (StatusCode, ApiErrorResponse) {
             format!("External service error: {}", e),
             Some("EXTERNAL_SERVICE_ERROR".to_string()),
         ),
+        AppError::ServiceUnavailableError(e) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            e.clone(),
+            Some("SERVICE_UNAVAILABLE".to_string()),
+        ),
         AppError::SerializationError(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Serialization error: {}", e),
@@ -177,7 +182,7 @@ impl DreamQuery {
     }
 
     pub fn get_offset(&self) -> u32 {
-        self.get_page() * self.get_limit()
+        self.get_page().saturating_mul(self.get_limit().max(1))
     }
 
     pub fn get_sort_field(&self) -> SortField {
@@ -198,7 +203,7 @@ pub async fn interpret_dream_handler(
         Err(validation_response) => return validation_response.into_response(),
     };
 
-    info!("Interpreting dream: {}", payload.dream_text);
+    info!("Dream interpretation requested");
 
     let mut validation_errors = Vec::new();
     if let Some(err) = validate_string_field("dream_text", &payload.dream_text, 1, Some(10000)) {

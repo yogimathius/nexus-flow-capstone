@@ -27,24 +27,15 @@ async fn test_interpret_dream_endpoint() {
 
     let response = app.clone().oneshot(request).await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
 
     let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
     let body: Value = serde_json::from_slice(&body_bytes).unwrap();
 
-    assert!(
-        body.get("interpretation").is_some(),
-        "Missing 'interpretation' field"
-    );
-    assert!(body.get("status").is_some(), "Missing 'status' field");
-
-    assert_eq!(
-        body.get("status").unwrap().as_str().unwrap(),
-        "success",
-        "Status should be 'success'"
-    );
+    assert_eq!(body["status"], "error");
+    assert_eq!(body["code"], "SERVICE_UNAVAILABLE");
 }
 
 #[tokio::test]

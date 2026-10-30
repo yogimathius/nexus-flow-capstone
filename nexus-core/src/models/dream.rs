@@ -1,6 +1,6 @@
 use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{Error, PgPool, Row, postgres::PgRow, types::time::OffsetDateTime};
+use sqlx::{Error, PgPool, types::time::OffsetDateTime};
 use uuid::Uuid;
 
 pub type DreamId = Uuid;
@@ -56,6 +56,27 @@ pub struct Dream {
     pub tags: Option<Vec<String>>,
 }
 
+#[derive(sqlx::FromRow)]
+struct DreamRecord {
+    id: Uuid,
+    text: String,
+    interpretation: String,
+    created_at: Option<OffsetDateTime>,
+    tags: Option<Vec<String>>,
+}
+
+impl From<DreamRecord> for Dream {
+    fn from(record: DreamRecord) -> Self {
+        Self {
+            id: record.id,
+            text: record.text,
+            interpretation: record.interpretation,
+            created_at: offset_to_chrono(record.created_at),
+            tags: record.tags.filter(|tags| !tags.is_empty()),
+        }
+    }
+}
+
 // Helper function to serialize UUID as String
 fn serialize_uuid<S>(id: &Uuid, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -78,23 +99,19 @@ fn offset_to_chrono(dt: Option<OffsetDateTime>) -> DateTime<Utc> {
 
 impl Dream {
     pub async fn create(pool: &PgPool, text: &str, interpretation: &str) -> Result<Uuid, Error> {
-        let record = sqlx::query!(
-            r#"
-            INSERT INTO dreams (text, interpretation)
-            VALUES ($1, $2)
-            RETURNING id
-            "#,
-            text,
-            interpretation
+        let id = sqlx::query_scalar::<_, Uuid>(
+            "INSERT INTO dreams (text, interpretation) VALUES ($1, $2) RETURNING id",
         )
+        .bind(text)
+        .bind(interpretation)
         .fetch_one(pool)
         .await?;
 
-        Ok(record.id)
+        Ok(id)
     }
 
     pub async fn get_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Dream>, Error> {
-        let record = sqlx::query!(
+        let record = sqlx::query_as::<_, DreamRecord>(
             r#"
             SELECT d.id, d.text, d.interpretation, d.created_at, 
                    array_agg(dt.tag) FILTER (WHERE dt.tag IS NOT NULL) as tags
@@ -102,30 +119,17 @@ impl Dream {
             LEFT JOIN dream_tags dt ON d.id = dt.dream_id
             WHERE d.id = $1
             GROUP BY d.id
-            "#,
-            id
+            "#
         )
+        .bind(id)
         .fetch_optional(pool)
         .await?;
 
-        match record {
-            Some(r) => Ok(Some(Dream {
-                id: r.id,
-                text: r.text,
-                interpretation: r.interpretation,
-                created_at: offset_to_chrono(r.created_at),
-                tags: if let Some(tags) = r.tags {
-                    if tags.is_empty() { None } else { Some(tags) }
-                } else {
-                    None
-                },
-            })),
-            None => Ok(None),
-        }
+        Ok(record.map(Dream::from))
     }
 
     pub async fn list(pool: &PgPool) -> Result<Vec<Dream>, Error> {
-        let records = sqlx::query!(
+        let records = sqlx::query_as::<_, DreamRecord>(
             r#"
             SELECT d.id, d.text, d.interpretation, d.created_at,
                    array_agg(dt.tag) FILTER (WHERE dt.tag IS NOT NULL) as tags
@@ -138,20 +142,7 @@ impl Dream {
         .fetch_all(pool)
         .await?;
 
-        let dreams = records
-            .into_iter()
-            .map(|r| Dream {
-                id: r.id,
-                text: r.text,
-                interpretation: r.interpretation,
-                created_at: offset_to_chrono(r.created_at),
-                tags: if let Some(tags) = r.tags {
-                    if tags.is_empty() { None } else { Some(tags) }
-                } else {
-                    None
-                },
-            })
-            .collect();
+        let dreams = records.into_iter().map(Dream::from).collect();
 
         Ok(dreams)
     }
@@ -176,88 +167,30 @@ impl Dream {
             SortField::Text => "d.text",
         };
 
-        // Create base query with counting for pagination
-        let mut query_builder = String::from(
-            "WITH filtered_dreams AS (
-                SELECT d.id
-                FROM dreams d
-                LEFT JOIN dream_tags dt ON d.id = dt.dream_id
-                WHERE 1=1
-            ",
+        let limit = limit.max(1);
+        const FILTER: &str = "($1::text IS NULL OR EXISTS (SELECT 1 FROM dream_tags filter_tag WHERE filter_tag.dream_id = d.id AND filter_tag.tag = $1)) AND ($2::text IS NULL OR d.text ILIKE '%' || $2 || '%' OR d.interpretation ILIKE '%' || $2 || '%')";
+        let total: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) FROM dreams d WHERE {FILTER}"))
+            .bind(tag_filter)
+            .bind(search_text)
+            .fetch_one(pool)
+            .await?;
+        let query = format!(
+            "SELECT d.id, d.text, d.interpretation, d.created_at, array_agg(dt.tag) FILTER (WHERE dt.tag IS NOT NULL) AS tags \
+             FROM dreams d LEFT JOIN dream_tags dt ON d.id = dt.dream_id \
+             WHERE {FILTER} GROUP BY d.id ORDER BY {order_column} {order_direction} LIMIT $3 OFFSET $4"
         );
-
-        // Add tag filter if provided
-        if let Some(tag) = tag_filter {
-            query_builder.push_str(&format!("AND dt.tag = '{}' ", tag));
-        }
-
-        // Add text search if provided
-        if let Some(search) = search_text {
-            query_builder.push_str(&format!(
-                "AND (d.text ILIKE '%{}%' OR d.interpretation ILIKE '%{}%') ",
-                search, search
-            ));
-        }
-
-        // Complete the CTE
-        query_builder.push_str(
-            "GROUP BY d.id
-            )
-            SELECT 
-                d.id, d.text, d.interpretation, d.created_at,
-                array_agg(dt.tag) FILTER (WHERE dt.tag IS NOT NULL) as tags,
-                (SELECT COUNT(*) FROM filtered_dreams) as total_count
-            FROM dreams d
-            INNER JOIN filtered_dreams fd ON d.id = fd.id
-            LEFT JOIN dream_tags dt ON d.id = dt.dream_id
-            GROUP BY d.id
-            ",
-        );
-
-        // Add ORDER BY clause
-        query_builder.push_str(&format!("ORDER BY {} {} ", order_column, order_direction));
-
-        // Add LIMIT and OFFSET
-        query_builder.push_str(&format!("LIMIT {} OFFSET {}", limit, offset));
-
-        // Execute the query
-        let records = sqlx::query(&query_builder)
-            .map(|row: PgRow| {
-                let id: Uuid = row.get("id");
-                let text: String = row.get("text");
-                let interpretation: String = row.get("interpretation");
-                let created_at: OffsetDateTime = row.get("created_at");
-                let tags: Option<Vec<String>> = row.get("tags");
-                let total_count: i64 = row.get("total_count");
-
-                (
-                    Dream {
-                        id,
-                        text,
-                        interpretation,
-                        created_at: offset_to_chrono(Some(created_at)),
-                        tags: if let Some(tags) = tags {
-                            if tags.is_empty() { None } else { Some(tags) }
-                        } else {
-                            None
-                        },
-                    },
-                    total_count,
-                )
-            })
+        let records = sqlx::query_as::<_, DreamRecord>(&query)
+            .bind(tag_filter)
+            .bind(search_text)
+            .bind(i64::from(limit))
+            .bind(i64::from(offset))
             .fetch_all(pool)
             .await?;
 
-        // Extract dreams and total count
-        let total = if records.is_empty() {
-            0
-        } else {
-            records[0].1 as u32
-        };
-
-        let dreams = records.into_iter().map(|(dream, _)| dream).collect();
-        let total_pages = (total as f64 / limit as f64).ceil() as u32;
-        let page = (offset / limit) + 1;
+        let total = total.max(0).min(u32::MAX as i64) as u32;
+        let dreams = records.into_iter().map(Dream::from).collect();
+        let total_pages = total.div_ceil(limit);
+        let page = (offset / limit).saturating_add(1);
 
         Ok(PaginatedDreams {
             dreams,
@@ -269,15 +202,15 @@ impl Dream {
     }
 
     pub async fn add_tag(pool: &PgPool, dream_id: Uuid, tag: &str) -> Result<(), Error> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO dream_tags (dream_id, tag)
             VALUES ($1, $2)
             ON CONFLICT (dream_id, tag) DO NOTHING
-            "#,
-            dream_id,
-            tag
+            "#
         )
+        .bind(dream_id)
+        .bind(tag)
         .execute(pool)
         .await?;
 
@@ -285,14 +218,14 @@ impl Dream {
     }
 
     pub async fn remove_tag(pool: &PgPool, dream_id: Uuid, tag: &str) -> Result<(), Error> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             DELETE FROM dream_tags
             WHERE dream_id = $1 AND tag = $2
-            "#,
-            dream_id,
-            tag
+            "#
         )
+        .bind(dream_id)
+        .bind(tag)
         .execute(pool)
         .await?;
 
@@ -320,89 +253,31 @@ impl Dream {
             SortField::Text => "d.text",
         };
 
-        // Create base query with full-text search
-        let mut query_builder = String::from(
-            "WITH filtered_dreams AS (
-                SELECT d.id
-                FROM dreams d
-                LEFT JOIN dream_tags dt ON d.id = dt.dream_id
-                WHERE d.search_vector @@ to_tsquery('english', $1)
-            ",
+        let limit = limit.max(1);
+        const FILTER: &str = "d.search_vector @@ plainto_tsquery('english', $1) AND ($2::text IS NULL OR EXISTS (SELECT 1 FROM dream_tags filter_tag WHERE filter_tag.dream_id = d.id AND filter_tag.tag = $2))";
+        let total: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) FROM dreams d WHERE {FILTER}"))
+            .bind(query)
+            .bind(tag_filter)
+            .fetch_one(pool)
+            .await?;
+        let statement = format!(
+            "SELECT d.id, d.text, d.interpretation, d.created_at, array_agg(dt.tag) FILTER (WHERE dt.tag IS NOT NULL) AS tags \
+             FROM dreams d LEFT JOIN dream_tags dt ON d.id = dt.dream_id \
+             WHERE {FILTER} GROUP BY d.id, d.search_vector \
+             ORDER BY ts_rank(d.search_vector, plainto_tsquery('english', $1)) DESC, {order_column} {order_direction} LIMIT $3 OFFSET $4"
         );
-
-        // Add tag filter if provided
-        if let Some(tag) = tag_filter {
-            query_builder.push_str(&format!("AND dt.tag = '{}' ", tag));
-        }
-
-        // Complete the CTE
-        query_builder.push_str(
-            "GROUP BY d.id
-            )
-            SELECT 
-                d.id, d.text, d.interpretation, d.created_at,
-                array_agg(dt.tag) FILTER (WHERE dt.tag IS NOT NULL) as tags,
-                (SELECT COUNT(*) FROM filtered_dreams) as total_count,
-                ts_rank(d.search_vector, to_tsquery('english', $1)) as rank
-            FROM dreams d
-            INNER JOIN filtered_dreams fd ON d.id = fd.id
-            LEFT JOIN dream_tags dt ON d.id = dt.dream_id
-            GROUP BY d.id, d.search_vector
-            ",
-        );
-
-        // Add ORDER BY clause - for search results, we prioritize rank first, then the user's sort preference
-        query_builder.push_str(&format!(
-            "ORDER BY rank DESC, {} {} ",
-            order_column, order_direction
-        ));
-
-        // Add LIMIT and OFFSET
-        query_builder.push_str(&format!("LIMIT {} OFFSET {}", limit, offset));
-
-        // Format search query for full-text search
-        // Replace spaces with & for AND operation in tsquery
-        let formatted_query = query.replace(' ', " & ");
-
-        // Execute the query
-        let records = sqlx::query(&query_builder)
-            .bind(&formatted_query)
-            .map(|row: PgRow| {
-                let id: Uuid = row.get("id");
-                let text: String = row.get("text");
-                let interpretation: String = row.get("interpretation");
-                let created_at: OffsetDateTime = row.get("created_at");
-                let tags: Option<Vec<String>> = row.get("tags");
-                let total_count: i64 = row.get("total_count");
-
-                (
-                    Dream {
-                        id,
-                        text,
-                        interpretation,
-                        created_at: offset_to_chrono(Some(created_at)),
-                        tags: if let Some(tags) = tags {
-                            if tags.is_empty() { None } else { Some(tags) }
-                        } else {
-                            None
-                        },
-                    },
-                    total_count,
-                )
-            })
+        let records = sqlx::query_as::<_, DreamRecord>(&statement)
+            .bind(query)
+            .bind(tag_filter)
+            .bind(i64::from(limit))
+            .bind(i64::from(offset))
             .fetch_all(pool)
             .await?;
 
-        // Extract dreams and total count
-        let total = if records.is_empty() {
-            0
-        } else {
-            records[0].1 as u32
-        };
-
-        let dreams = records.into_iter().map(|(dream, _)| dream).collect();
-        let total_pages = (total as f64 / limit as f64).ceil() as u32;
-        let page = (offset / limit) + 1;
+        let total = total.max(0).min(u32::MAX as i64) as u32;
+        let dreams = records.into_iter().map(Dream::from).collect();
+        let total_pages = total.div_ceil(limit);
+        let page = (offset / limit).saturating_add(1);
 
         Ok(PaginatedDreams {
             dreams,

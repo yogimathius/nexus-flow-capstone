@@ -21,6 +21,8 @@ pub enum AppError {
     RateLimitedError,
     // External service errors
     ExternalServiceError(String),
+    // Service is not configured or temporarily unavailable
+    ServiceUnavailableError(String),
     // Authorization error
     AuthorizationError,
 }
@@ -37,6 +39,7 @@ impl fmt::Display for AppError {
             AppError::NotFoundError(msg) => write!(f, "Not found: {}", msg),
             AppError::RateLimitedError => write!(f, "Rate limited by API provider"),
             AppError::ExternalServiceError(msg) => write!(f, "External service error: {}", msg),
+            AppError::ServiceUnavailableError(msg) => write!(f, "Service unavailable: {}", msg),
             AppError::AuthorizationError => write!(f, "Authorization error"),
         }
     }

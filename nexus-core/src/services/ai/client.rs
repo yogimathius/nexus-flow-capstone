@@ -5,7 +5,7 @@ use crate::services::mcp::McpClientTrait;
 use crate::services::mcp::types::SymbolMeaning;
 use std::any::Any;
 use std::sync::Arc;
-use tracing::{debug, error, warn};
+use tracing::{error, warn};
 
 use super::AiClientTrait;
 
@@ -18,20 +18,9 @@ pub struct AiClient {
 
 impl AiClient {
     pub fn new(github_token: Option<String>) -> Self {
-        let github_provider = if let Some(token) = github_token {
-            if token.starts_with("test_") || token == "dummy_key" {
-                // For testing purposes, create a test provider that won't make real API calls
-                debug!("Creating a mock GitHub provider for testing");
-                Some(GitHubProvider::new(token))
-            } else if !token.is_empty() {
-                // For real usage, create a real provider
-                Some(GitHubProvider::new(token))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+        let github_provider = github_token
+            .filter(|token| !token.is_empty())
+            .map(GitHubProvider::new);
 
         AiClient {
             openrouter_provider: None,
@@ -49,18 +38,9 @@ impl AiClient {
             None
         };
 
-        let github_provider = if let Some(token) = github_token {
-            if token.starts_with("test_") || token == "dummy_key" {
-                debug!("Creating a mock GitHub provider for testing");
-                Some(GitHubProvider::new(token))
-            } else if !token.is_empty() {
-                Some(GitHubProvider::new(token))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+        let github_provider = github_token
+            .filter(|token| !token.is_empty())
+            .map(GitHubProvider::new);
 
         AiClient {
             openrouter_provider,
@@ -74,19 +54,20 @@ impl AiClient {
         self
     }
 
+    pub fn with_github_provider(mut self, provider: GitHubProvider) -> Self {
+        self.github_provider = Some(provider);
+        self
+    }
+
     pub fn has_mcp_client(&self) -> bool {
         self.mcp_client.is_some()
     }
 
     pub async fn request_dream_interpretation(&self, dream_text: &str) -> AppResult<String> {
         // Try to get the provider (prefer OpenRouter, fallback to GitHub)
-        let provider = match self.get_provider() {
-            Ok(provider) => provider,
-            Err(_) => {
-                // Return a friendly message when no AI provider is available
-                return Ok("I'm sorry, the dream interpretation AI service is currently unavailable. Please try again later.".to_string());
-            }
-        };
+        let provider = self.get_provider().map_err(|_| {
+            AppError::ServiceUnavailableError("No AI provider configured for dream interpretation".to_string())
+        })?;
 
         let symbols = self.extract_symbols(dream_text);
         let symbol_meanings = self.lookup_symbol_meanings(&symbols).await;
@@ -96,11 +77,8 @@ impl AiClient {
         match provider.generate_completion(&prompt).await {
             Ok(interpretation) => Ok(interpretation),
             Err(e) => {
-                // Log the error
                 warn!("AI provider error: {}", e);
-
-                // Return a friendly message for any API errors
-                Ok("I apologize, but I'm unable to interpret your dream at the moment due to a technical issue. Please try again later.".to_string())
+                Err(e)
             }
         }
     }
@@ -114,12 +92,6 @@ impl AiClient {
         // Fallback to GitHub provider
         match &self.github_provider {
             Some(provider) => {
-                // If we're in test mode with a test token, just return the provider even though
-                // it wouldn't normally be used for real API calls
-                if self.is_test_mode() {
-                    return Ok(provider as &dyn AiProvider);
-                }
-
                 // For real API calls, make sure the token is valid
                 let token = provider.get_token();
                 if token.is_empty() {
@@ -166,18 +138,14 @@ impl AiClient {
         symbol_meanings: Option<Vec<SymbolMeaning>>,
     ) -> String {
         let mut prompt = format!(
-            "You are a skilled dream interpreter with expertise in Jungian psychology, symbolism, and dream analysis. 
-            
-            Please interpret this dream in a thoughtful, insightful way:
-            
-            \"{}\".",
+            "Offer a tentative reading of this dream for personal reflection. Avoid diagnosis, fixed meanings, and claims to know the dreamer's inner life. Distinguish the dreamer's own details from general symbolic associations.\n\nDream:\n\"{}\".",
             dream_text
         );
 
         if let Some(meanings) = symbol_meanings {
             if !meanings.is_empty() {
                 prompt.push_str(
-                    "\n\nHere are known symbolic meanings that may be relevant to this dream:\n",
+                    "\n\nThe symbol library offers possible associations, which may or may not fit this person's experience:\n",
                 );
 
                 for meaning in meanings {
@@ -191,7 +159,7 @@ impl AiClient {
             }
         }
 
-        prompt.push_str("\nProvide analysis of the key symbols, potential meanings, and psychological insights from this dream. Consider archetypes, personal associations, and emotional resonance.");
+        prompt.push_str("\nExplore possible themes and emotions, explain uncertainty, and invite the dreamer to consider their own associations. Keep the interpretation grounded in the dream text.");
 
         prompt
     }
@@ -212,16 +180,6 @@ impl AiClient {
             .collect()
     }
 
-    // Add a method to check if we're in test mode
-    fn is_test_mode(&self) -> bool {
-        match &self.github_provider {
-            Some(provider) => {
-                let token = provider.get_token();
-                token.starts_with("test_") || token == "dummy_key"
-            }
-            None => false,
-        }
-    }
 }
 
 impl AiClientTrait for AiClient {

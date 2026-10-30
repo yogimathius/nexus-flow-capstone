@@ -27,6 +27,7 @@ async fn test_ai_client_with_mocks() {
     Mock::given(method("POST"))
         .and(any())
         .respond_with(ResponseTemplate::new(200).set_body_json(&mock_response))
+        .expect(1)
         .mount(&mock_server)
         .await;
 
@@ -43,11 +44,7 @@ async fn test_ai_client_with_mocks() {
     match result {
         Ok(interpretation) => {
             // Check that we got a non-empty interpretation
-            assert!(
-                !interpretation.is_empty(),
-                "Interpretation should not be empty"
-            );
-            println!("Test succeeded with interpretation: {}", interpretation);
+            assert_eq!(interpretation, "This dream symbolizes freedom and transcendence...");
         }
         Err(e) => {
             panic!("Expected successful response but got error: {}", e);
@@ -76,10 +73,10 @@ async fn test_ai_client_handles_api_error() {
         }
         Err(e) => {
             println!("Got error as expected: {}", e);
-            // Error should be about GitHub token not being configured
+            // An absent provider must not produce a successful interpretation.
             assert!(
-                format!("{}", e).contains("GitHub token"),
-                "Error should mention GitHub token: {}",
+                format!("{}", e).contains("No AI provider configured"),
+                "Error should mention the missing provider: {}",
                 e
             );
         }
