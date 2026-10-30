@@ -1,228 +1,52 @@
 # Nexus Core
 
-Nexus Core is a powerful backend service for dream interpretation and analysis, built with Rust and the Axum web framework. It leverages AI capabilities through OpenRouter API integration and supports the Model Context Protocol (MCP) for enhanced functionality.
+Nexus Core is Nexus Flow's Rust API. It stores journal entries in PostgreSQL, calls a configured AI provider for interpretations, and can launch the separate Symbols Awakening TypeScript MCP server as a local child process over stdio. See the [repository README](../README.md) for full local setup.
 
-## Features
+## Configuration
 
-- **Dream Interpretation API**: Submit dream text and receive AI-powered interpretations
-- **Dream Storage**: Save, retrieve, and list interpreted dreams in a PostgreSQL database
-- **Dream Tagging**: Add and remove tags to categorize dreams
-- **Dream Search**: Search dreams by text content or filter by tags
-- **Pagination and Sorting**: Flexible listing with pagination and custom sort orders
-- **Model Context Protocol (MCP)**: Optional integration with MCP for enhanced symbol analysis
-- **Multiple AI Providers**: Support for OpenRouter and GitHub/Azure AI APIs
-- **RESTful API Design**: Clean API endpoints with proper error handling
-- **Docker Support**: Easy containerization for deployment
-- **CORS Configuration**: Pre-configured for local development
+`DATABASE_URL` is required. The API creates the target database when the PostgreSQL role permits it, then applies migrations from `migrations/` before listening. `PORT` defaults to `3003`; `cargo run -- --port 3003` overrides it. The listener binds to `127.0.0.1` for local use.
 
-## Getting Started
+Set `OPENROUTER_API_KEY` or `GITHUB_TOKEN` to enable interpretations. With neither configured, `POST /api/interpret_dream` returns HTTP 503. A provider failure is returned as an error rather than a successful interpretation.
 
-### Prerequisites
-
-- Rust and Cargo (latest stable or nightly)
-- PostgreSQL database
-- OpenRouter API key (obtain from [OpenRouter.ai](https://openrouter.ai))
-- GitHub token (optional, for Azure AI API access)
-
-### Optional Components
-
-- **MCP Server**: For enhanced symbol analysis, you can run a separate MCP server (like a symbolic ontology service)
-  - Set the MCP_URL environment variable to your given mcp server to connect
-  - If no MCP server is found, the application will run without MCP functionality
-
-### Environment Setup
-
-Create a `.env` file in the project root with the following variables:
-
-```
-DATABASE_URL=postgresql://username:password@localhost:5432/nexus_core
-OPENROUTER_API_KEY=your_openrouter_api_key
-GITHUB_TOKEN=your_github_token (optional, for Azure AI API)
-PORT=3003 (optional, defaults to 3003)
-ENABLE_MCP=true (optional, defaults to true)
-MCP_SERVER_URL=http://localhost:3002/sse (optional)
-```
-
-### Running the Server
+For local MCP integration:
 
 ```bash
-# Install dependencies and run the server
-cargo run -- --port 3003
-
-# Or use the provided script
-./run.sh 3003
+ENABLE_MCP=true
+MCP_TRANSPORT=stdio
+SYMBOLS_MCP_ENTRY=/absolute/path/to/symbols-awakening-mcp/dist/index.js
+SYMBOLS_MCP_DEMO=true
 ```
 
-### Using Docker
+Use `SYMBOLS_MCP_DEMO=false` plus `SYMBOLS_MCP_DATABASE_URL` for that server's persistent dataset. For the legacy Rust MCP, set `MCP_TRANSPORT=sse` and `MCP_SERVER_URL` to its SSE endpoint. The API continues without symbol enrichment if the MCP cannot initialize.
+
+## Routes
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| GET | `/health` | API process health |
+| POST | `/api/interpret_dream` | Interpret a dream; `save` defaults to false |
+| GET, POST | `/api/dreams` | List or create journal entries |
+| GET | `/api/dreams/{id}` | Read an entry |
+| GET | `/api/dreams/search?search=...` | Full text search |
+| POST | `/api/dreams/{id}/tags` | Add a tag |
+| DELETE | `/api/dreams/{id}/tags/{tag}` | Remove a tag |
+
+Example request:
 
 ```bash
-# Build the Docker image
-docker build -t nexus-core .
-
-# Run the container
-docker run -p 8080:8080 \
-  -e DATABASE_URL=your_database_url \
-  -e OPENROUTER_API_KEY=your_api_key \
-  -e GITHUB_TOKEN=your_github_token \
-  nexus-core
+curl -i http://127.0.0.1:3003/api/interpret_dream \
+  -H 'Content-Type: application/json' \
+  -d '{"dream_text":"I walked beside a quiet ocean under a bright moon.","save":false}'
 ```
 
-## API Endpoints
+The API has no authentication and is intended for local use. Interpretation text is sent to the configured AI provider. Raw dream text is not written to the API logs.
 
-### Dream Interpretation
-
-- **POST /api/interpret_dream**
-  - Interprets a dream using AI
-  - Request: `{ "dream_text": "I was flying over mountains", "save": true }`
-  - Response: `{ "interpretation": "...", "status": "success", "id": "uuid" }`
-  - The `save` parameter is optional and defaults to false
-
-### Dream Management
-
-- **POST /api/dreams**
-
-  - Creates a new dream record
-  - Request: `{ "text": "Dream text", "interpretation": "Dream interpretation" }`
-  - Response: `{ "id": "uuid", "status": "success" }`
-
-- **GET /api/dreams**
-
-  - Lists all saved dreams with pagination and sorting
-  - Query parameters:
-    - `page`: Page number (default: 1)
-    - `limit`: Items per page (default: 10, max: 100)
-    - `sort_field`: Field to sort by (`created_at`, `text`, etc.)
-    - `sort_order`: `asc` or `desc` (default: `desc`)
-    - `tag`: Filter by specific tag
-  - Response: Array of dream objects with pagination metadata
-
-- **GET /api/dreams/search**
-
-  - Search for dreams by text content
-  - Query parameters:
-    - `search`: Text to search for
-    - (All pagination parameters from /api/dreams endpoint)
-  - Response: Array of matching dream objects with pagination metadata
-
-- **GET /api/dreams/{id}**
-  - Retrieves a specific dream by ID
-  - Response: Dream object or 404 error
-
-### Dream Tags
-
-- **POST /api/dreams/{id}/tags**
-
-  - Adds a tag to a dream
-  - Request: `{ "tag": "lucid" }`
-  - Response: `{ "status": "success" }`
-
-- **DELETE /api/dreams/{id}/tags/{tag}**
-  - Removes a tag from a dream
-  - Response: `{ "status": "success" }`
-
-### Health Check
-
-- **GET /health**
-  - Simple health check endpoint
-  - Response: `"OK"`
-
-## API Response Format
-
-All API responses follow a consistent format:
-
-### Success Response
-
-```json
-{
-  "status": "success",
-  ... (response data)
-}
-```
-
-### Error Response
-
-```json
-{
-  "status": "error",
-  "message": "Error description",
-  "code": "ERROR_CODE",
-  "details": {} (optional)
-}
-```
-
-## Architecture
-
-The application follows a modular architecture:
-
-- **API Layer**: Handles HTTP requests and responses
-- **Service Layer**: Contains business logic and external service integrations
-- **Data Layer**: Manages database operations and migrations
-- **Configuration**: Environment-based configuration management
-
-## Development
-
-### Project Structure
-
-```
-src/
-├── api/            # API endpoints and handlers
-├── db/             # Database connection and migrations
-├── models/         # Data models and database operations
-├── services/       # Business logic and external services
-├── config.rs       # Configuration management
-├── lib.rs          # Core module exports
-├── logging.rs      # Logging setup
-├── main.rs         # Application entry point
-└── server.rs       # Server implementation
-```
-
-### Design Patterns
-
-#### Dependency Injection
-
-Nexus Core uses trait-based dependency injection for better testability and modularity:
-
-- **Trait Interfaces**: Services expose trait interfaces (e.g., `AiClientTrait`, `McpClientTrait`)
-- **Trait Objects**: Dynamic dispatch via `Box<dyn Trait>` and `Arc<Box<dyn Trait>>`
-- **Mock Implementations**: Easy creation of mock services for testing
-
-For more details, see [docs/dependency_injection.md](docs/dependency_injection.md).
-
-### Running Tests
+## Verify
 
 ```bash
 cargo test
+DATABASE_URL=postgresql://USER@127.0.0.1:5432/nexus_core \
+  cargo test --test dream_model_security -- --ignored
 ```
 
-### API Testing Script
-
-A test script is provided for quick API testing:
-
-```bash
-./test_api.sh
-```
-
-For more comprehensive API tests:
-
-```bash
-./curl_tests.sh
-```
-
-## Deployment
-
-### Fly.io
-
-A `fly.toml` configuration is included for deployment to Fly.io.
-
-```bash
-fly deploy
-```
-
-## Where to Get API Keys
-
-- **OpenRouter API Key**: Register at [OpenRouter.ai](https://openrouter.ai) to get an API key
-- **GitHub Token**: Create a personal access token in your GitHub account settings
-
-## License
-
-This project is proprietary software.
+The MCP integration test is also ignored by default; run `cargo test connects_to_local_symbols_awakening_server --lib -- --ignored` after setting `SYMBOLS_MCP_ENTRY` and `SYMBOLS_MCP_DEMO=true`.
