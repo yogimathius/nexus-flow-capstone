@@ -1,4 +1,6 @@
 use crate::components::journal::models::Dream;
+use crate::components::api::get_dreams_url;
+use gloo_net::http::Request;
 use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
@@ -48,20 +50,26 @@ pub fn use_dream_data(dream_id: String) -> DreamState {
         set_error.set(Some("Invalid dream ID".to_string()));
         set_is_loading.set(false);
     } else {
-        // First try to find in localStorage
         spawn_local(async move {
-            match get_dreams_from_storage() {
-                Ok(dreams) => {
-                    if let Some(dream_data) = dreams.iter().find(|d| d.id == dream_id) {
-                        set_dream.set(Some(dream_data.clone()));
+            let url = format!("{}/{}", get_dreams_url(), dream_id);
+            if let Ok(response) = Request::get(&url).send().await {
+                if response.ok() {
+                    if let Ok(dream_data) = response.json::<Dream>().await {
+                        set_dream.set(Some(dream_data));
                         set_is_loading.set(false);
                         return;
                     }
                 }
-                Err(_) => {}
             }
-            
-            // If not found in localStorage, show error since API endpoint doesn't exist
+
+            if let Ok(dreams) = get_dreams_from_storage() {
+                if let Some(dream_data) = dreams.into_iter().find(|dream| dream.id == dream_id) {
+                    set_dream.set(Some(dream_data));
+                    set_is_loading.set(false);
+                    return;
+                }
+            }
+
             set_error.set(Some("Dream not found. The dream may have been deleted or the ID is invalid.".to_string()));
             set_is_loading.set(false);
         });

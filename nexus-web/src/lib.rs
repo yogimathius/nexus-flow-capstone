@@ -27,14 +27,14 @@ pub fn App() -> impl IntoView {
         <Html attr:lang="en" attr:dir="ltr" attr:data-theme="dark" />
 
         // sets the document title
-        <Title text="Dream Interpreter AI | Decode Your Dreams" />
+        <Title text="Nexus Flow | Dream Reflection" />
 
         // injects metadata in the <head> of the page
         <Meta charset="UTF-8" />
         <Meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <Meta
             name="description"
-            content="Unlock the secrets of your subconscious with our AI-powered Dream Interpreter"
+            content="A space to reflect on dreams with optional AI interpretation and a local journal."
         />
 
         <Router>

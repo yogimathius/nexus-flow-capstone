@@ -5,6 +5,19 @@ mod styled_interpretation;
 pub use markdown::{DreamText, InterpretationText, Markdown};
 pub use styled_interpretation::StyledInterpretation;
 
+#[cfg(test)]
+mod tests {
+    use super::render_markdown;
+
+    #[test]
+    fn dream_content_cannot_inject_html() {
+        let html = render_markdown("<img src=x onerror=alert(1)> **meaning**");
+        assert!(!html.contains("<img"));
+        assert!(html.contains("&lt;img"));
+        assert!(html.contains("<strong>meaning</strong>"));
+    }
+}
+
 /// Converts markdown text to styled HTML
 ///
 /// This function handles:
@@ -26,6 +39,9 @@ pub fn render_markdown(text: &str) -> String {
     } else {
         text.to_string()
     };
+
+    // Escape untrusted dream and provider text before adding our own markup.
+    let text = html_escape::encode_text(&text);
 
     // Process the text line by line for better header handling
     let mut result = String::new();

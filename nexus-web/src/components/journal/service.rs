@@ -176,34 +176,24 @@ fn paginate_dreams(dreams: Vec<Dream>, pagination: &Pagination) -> Vec<Dream> {
 pub fn fetch_dreams(
     pagination: &Pagination,
     search_query: &str,
-    date_filter: &str,
     on_success: impl Fn(Vec<Dream>, Pagination) + 'static,
     on_error: impl Fn(String) + 'static,
 ) {
     // Create filters
     let filters = DreamSearchFilters {
         search_query: search_query.to_string(),
-        date_filter: date_filter.to_string(),
         ..Default::default()
     };
 
     // Build query parameters
-    let mut query_params = vec![
-        format!("page={}", pagination.current_page),
-        format!("limit={}", pagination.items_per_page),
-    ];
-
-    // Add search query if present
+    let mut query_params = form_urlencoded::Serializer::new(String::new());
+    query_params.append_pair("page", &pagination.current_page.to_string());
+    query_params.append_pair("limit", &pagination.items_per_page.to_string());
     if !search_query.is_empty() {
-        query_params.push(format!("search={}", search_query));
+        query_params.append_pair("search", search_query);
     }
 
-    // Add date filter if present
-    if !date_filter.is_empty() {
-        query_params.push(format!("date_filter={}", date_filter));
-    }
-
-    let page_url = format!("{}?{}", get_dreams_url(), query_params.join("&"));
+    let page_url = format!("{}?{}", get_dreams_url(), query_params.finish());
 
     log!("Fetching dreams from: {}", page_url);
 
@@ -227,8 +217,10 @@ pub fn fetch_dreams(
             Ok(response) => {
                 match response.json::<PaginatedResponse>().await {
                     Ok(data) => {
-                        // Update local storage with new data from server
-                        let _ = save_dreams_to_storage(&data.dreams);
+                        // Preserve entries from other pages and searches in the offline cache.
+                        for dream in &data.dreams {
+                            let _ = save_dream_offline(dream);
+                        }
 
                         // Create pagination information from the response
                         let server_pagination = Pagination {

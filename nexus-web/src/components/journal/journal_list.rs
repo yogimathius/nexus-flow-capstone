@@ -1,6 +1,6 @@
 use crate::components::api::check_server_status;
 use crate::components::journal::{
-    models::{Dream, DreamSearchFilters, Pagination},
+    models::{Dream, Pagination},
     service::fetch_dreams,
     JournalCard, JournalEmptyState, JournalError, JournalFilters, JournalLoading,
     JournalPagination, OfflineBanner, OfflineIndicator,
@@ -18,31 +18,15 @@ pub fn JournalList() -> impl IntoView {
         items_per_page: 10,
     });
     let (search_query, set_search_query) = signal(String::new());
-    let (date_filter, set_date_filter) = signal(String::new());
-    let (category_filter, set_category_filter) = signal("All Categories".to_string());
-    let (selected_tags, set_selected_tags) = signal(Vec::<String>::new());
-    let (favorites_only, set_favorites_only) = signal(false);
     let (is_offline, set_is_offline) = signal(false);
     let (refresh_trigger, set_refresh_trigger) = signal(0);
 
-    let search_filters = Memo::new(move |_| DreamSearchFilters {
-        search_query: search_query.get(),
-        date_filter: date_filter.get(),
-        category: category_filter.get(),
-        tags: selected_tags.get(),
-        favorites_only: favorites_only.get(),
-    });
-
     let fetch_deps = Memo::new(move |_| {
-        (
-            refresh_trigger.get(),
-            pagination.get(),
-            search_filters.get(),
-        )
+        (refresh_trigger.get(), pagination.get(), search_query.get())
     });
 
     Effect::new(move |_| {
-        let (_, pagination, filters) = fetch_deps.get();
+        let (_, pagination, query) = fetch_deps.get();
         set_is_loading.set(true);
         set_error.set(None);
 
@@ -51,8 +35,7 @@ pub fn JournalList() -> impl IntoView {
 
             fetch_dreams(
                 &pagination,
-                &filters.search_query,
-                &filters.date_filter,
+                &query,
                 move |data, server_pagination| {
                     set_dreams.set(data);
 
@@ -106,24 +89,6 @@ pub fn JournalList() -> impl IntoView {
         check_server();
     });
 
-    let handle_category_change = Callback::new(move |category: String| {
-        set_category_filter.set(category);
-        set_pagination.update(|p| {});
-        load_dreams();
-    });
-
-    let handle_tags_change = Callback::new(move |tags: Vec<String>| {
-        set_selected_tags.set(tags);
-        set_pagination.update(|p| {});
-        load_dreams();
-    });
-
-    let handle_favorites_toggle = Callback::new(move |is_checked: bool| {
-        set_favorites_only.set(is_checked);
-        set_pagination.update(|p| {});
-        load_dreams();
-    });
-
     view! {
         <div class="container">
             <Show when=move || is_offline.get()>
@@ -133,19 +98,8 @@ pub fn JournalList() -> impl IntoView {
             <JournalFilters
                 search_query=search_query
                 set_search_query=set_search_query
-                date_filter=date_filter
-                set_date_filter=set_date_filter
-                category_filter=category_filter
-                set_category_filter=set_category_filter
-                selected_tags=selected_tags
-                set_selected_tags=set_selected_tags
-                favorites_only=favorites_only
-                set_favorites_only=set_favorites_only
                 on_search=handle_search
                 on_refresh=handle_refresh
-                on_category_change=handle_category_change
-                on_tags_change=handle_tags_change
-                on_favorites_toggle=handle_favorites_toggle
             />
 
             <div class="journal-content">
@@ -196,7 +150,7 @@ pub fn JournalList() -> impl IntoView {
                 </Show>
             </div>
 
-            <Show when=move || (pagination.get().total_pages > 1)>
+            <Show when=move || { pagination.get().total_pages > 1 }>
                 <JournalPagination pagination=pagination on_page_change=handle_page_change />
             </Show>
 

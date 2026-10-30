@@ -8,10 +8,9 @@ pub fn DreamInterpreterPage() -> impl IntoView {
             <section class="section-sm bg-gradient">
                 <div class="container">
                     <div class="stack items-center text-center">
-                        <h1 class="slide-up">"Dream Interpretation Portal"</h1>
+                        <h1 class="slide-up">"Reflect on a dream"</h1>
                         <p class="slide-up animation-delay-1">
-                    "Our AI-powered dream interpreter helps you uncover the hidden meanings in your dreams.
-                            Share your dream and receive insights into your subconscious mind."
+                    "Describe a dream and explore one possible reading. Interpretations are prompts for reflection, not diagnoses or fixed meanings. Your text is sent to the configured AI provider when you submit it."
                 </p>
             </div>
                 </div>

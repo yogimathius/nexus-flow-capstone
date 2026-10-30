@@ -70,15 +70,15 @@ fn render_interpretation(content: String) -> impl IntoView {
                                                 let definition = parts[1].trim().to_string();
                                                 let html = format!(
                                                     "<div class=\"interpretation-term-group\"><span class=\"interpretation-term\">{}</span><span class=\"interpretation-definition\">{}</span></div>",
-                                                    term,
-                                                    definition,
+                                                    html_escape::encode_text(&term),
+                                                    html_escape::encode_text(&definition),
                                                 );
 
                                                 view! { <div inner_html=html></div> }
                                             } else {
                                                 let html = format!(
                                                     "<div class=\"interpretation-text-wrapper\"><p class=\"interpretation-text\">{}</p></div>",
-                                                    item,
+                                                    html_escape::encode_text(&item),
                                                 );
 
                                                 view! { <div inner_html=html></div> }
@@ -86,7 +86,7 @@ fn render_interpretation(content: String) -> impl IntoView {
                                         } else {
                                             let html = format!(
                                                 "<div class=\"interpretation-text-wrapper\"><p class=\"interpretation-text\">{}</p></div>",
-                                                item,
+                                                html_escape::encode_text(&item),
                                             );
 
                                             view! { <div inner_html=html></div> }

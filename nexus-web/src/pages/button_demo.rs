@@ -23,7 +23,7 @@ pub fn ButtonDemo() -> impl IntoView {
                 <h2>Counter Example</h2>
 
                 <div class="counter">
-                    <div class="counterValue">{count}</div>
+                    <div class="counterValue">{move || count.get()}</div>
                     <div class="counterControls">
                         <div on:click=move |_| {
                             set_count.update(|c| *c += 1);

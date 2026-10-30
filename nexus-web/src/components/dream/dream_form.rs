@@ -103,7 +103,7 @@ pub fn DreamForm(
                             id="dream-text"
                             class="textarea"
                             placeholder="Enter your dream description in detail..."
-                            prop:value=dream_text
+                            prop:value=move || dream_text.get()
                             aria-invalid=move || error.get().is_some().to_string()
                             aria-describedby="dream-validation-message char-counter"
                             on:input=move |ev| {
@@ -175,7 +175,7 @@ pub fn DreamForm(
                     <input
                         type="checkbox"
                         id="auto-save"
-                        checked=auto_save
+                        prop:checked=move || auto_save.get()
                         on:change=move |ev| {
                             let checked = event_target_checked(&ev);
                             set_auto_save.set(checked);

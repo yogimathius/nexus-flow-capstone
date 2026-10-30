@@ -1,5 +1,4 @@
 use crate::components::journal::models::Dream;
-use crate::components::markdown::render_markdown;
 use leptos::prelude::*;
 
 #[component]
@@ -24,44 +23,21 @@ pub fn JournalCard(
     };
 
     let truncate = |text: &str, max_len: usize| -> String {
-        if text.len() <= max_len {
-            text.to_string()
-        } else {
-            format!("{}...", &text[0..max_len])
-        }
+        let mut chars = text.chars();
+        let prefix: String = chars.by_ref().take(max_len).collect();
+        if chars.next().is_some() { format!("{prefix}…") } else { prefix }
     };
 
     let clean_interpretation_preview = |text: &str, max_len: usize| -> String {
-        let text = render_markdown(text);
-        let text = text
-            .replace(r#"<h3 class="md-heading">"#, "")
-            .replace(r#"<h4 class="md-subheading">"#, "")
-            .replace("</h3>", "")
-            .replace("</h4>", "")
-            .replace("<strong>", "")
-            .replace("</strong>", "")
-            .replace("<em>", "")
-            .replace("</em>", "")
-            .replace("<br/>", " ");
-
-        if text.len() <= max_len {
-            text
-        } else {
-            format!("{}...", &text[0..max_len])
-        }
+        let plain = text.replace('*', "").replace('#', "").replace('\n', " ");
+        truncate(&plain, max_len)
     };
 
     let date = format_date(&dream.created_at);
     let time = format_time(&dream.created_at);
     let clean_interp = clean_interpretation_preview(&dream.interpretation, 120);
 
-    let (is_favorite, set_is_favorite) = signal(dream.is_favorite);
-
     let (dream_tags, _) = signal(dream.tags.clone());
-
-    let toggle_favorite = move |_| {
-        set_is_favorite.update(|f| *f = !*f);
-    };
 
     view! {
         <div class=format!("dream-card slide-up {}", animation_delay)>
@@ -82,32 +58,6 @@ pub fn JournalCard(
                     <div class="dream-time">{time}</div>
                 </div>
 
-                <button
-                    type="button"
-                    class=move || {
-                        format!("favorite-btn {}", if is_favorite.get() { "active" } else { "" })
-                    }
-                    on:click=toggle_favorite
-                    aria-label=move || {
-                        if is_favorite.get() { "Remove from favorites" } else { "Add to favorites" }
-                    }
-                    aria-pressed=move || is_favorite.get().to_string()
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill=move || if is_favorite.get() { "currentColor" } else { "none" }
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                    >
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                    </svg>
-                </button>
             </div>
 
             <h3 class="dream-title">{truncate(&dream.text, 60)}</h3>

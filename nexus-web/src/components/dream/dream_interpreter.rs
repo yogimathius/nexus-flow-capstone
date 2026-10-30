@@ -11,7 +11,7 @@ pub fn DreamInterpreter() -> impl IntoView {
     let (is_loading, set_is_loading) = signal(false);
     let (error, set_error) = signal(Option::<String>::None);
     let (button_disabled, set_button_disabled) = signal(true);
-    let (auto_save, set_auto_save) = signal(true);
+    let (auto_save, set_auto_save) = signal(false);
     let (saved_dream_id, set_saved_dream_id) = signal(Option::<String>::None);
 
     let show_result = move || interpretation.get().is_some();
